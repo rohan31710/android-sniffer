@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="hello">Hello World, AndroidSnifferActivity!</string>
-    <string name="app_name">AndroidSniffer</string>
+    <string name="app_name">DroidShark</string>
+    <string name="exit">Exit</string>
+    <string name="settings">Settings</string>
+    <string name="sniffer">Sniffer</string>
+    <string name="packet_view">PacketView</string>
 
 </resources>

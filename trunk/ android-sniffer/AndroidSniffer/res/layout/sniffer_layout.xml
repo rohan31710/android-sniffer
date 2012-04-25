@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+	
+    <LinearLayout
+        android:id="@+id/sniffer_ctrl_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_gravity="center_horizontal"
+        android:orientation="horizontal" >
+
+        <ImageButton
+            android:id="@+id/startButton"
+            style="@style/ControlButton"
+            android:src="@drawable/play" />
+
+        <ImageButton
+            android:id="@+id/stopButton"
+            style="@style/ControlButton"
+            android:src="@drawable/stop" />
+
+    </LinearLayout>
+    
+    <ListView
+        android:id="@+id/packetlist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/sniffer_ctrl_layout" >
+    </ListView>
+
+</RelativeLayout>
