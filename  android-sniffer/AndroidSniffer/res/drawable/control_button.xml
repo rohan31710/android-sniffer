@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item>
+      <bitmap android:src="@drawable/button"
+        android:gravity="center"
+        android:padding="5dip" />
+    </item>
+    <item
+        android:drawable="@drawable/glow_highlight"
+        android:gravity="center"
+        android:padding="5dip" >
+    </item>
+
+ </layer-list>  
+
