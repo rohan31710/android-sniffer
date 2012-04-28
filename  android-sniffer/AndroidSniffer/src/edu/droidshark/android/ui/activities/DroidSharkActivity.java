@@ -1,40 +1,40 @@
 package edu.droidshark.android.ui.activities;
 
-import edu.droidshark.R;
-import edu.droidshark.constants.MDMConstants;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.support.v4.app.ActionBar;
-import android.support.v4.app.DialogFragment;
-import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentTransaction;
-import android.support.v4.app.ActionBar.Tab;
-import android.support.v4.app.ActionBar.TabListener;
-import android.support.v4.view.Menu;
-import android.support.v4.view.MenuItem;
-import android.util.DisplayMetrics;
-import android.util.Log;
-import android.view.Gravity;
-import android.view.MenuInflater;
-import android.view.View;
-import android.view.inputmethod.InputMethodManager;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.StrictMode;
-import android.preference.PreferenceManager;
+import android.support.v4.app.ActionBar;
+import android.support.v4.app.ActionBar.Tab;
+import android.support.v4.app.ActionBar.TabListener;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v4.view.Menu;
+import android.support.v4.view.MenuItem;
+import android.util.Log;
+import android.view.MenuInflater;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.Toast;
+import edu.droidshark.R;
 import edu.droidshark.android.services.UIBinder;
 import edu.droidshark.android.services.UIManagerService;
 import edu.droidshark.android.ui.fragments.activity.FragmentWithBinder;
 import edu.droidshark.android.ui.fragments.activity.PacketViewFragment;
 import edu.droidshark.android.ui.fragments.activity.SnifferFragment;
+import edu.droidshark.constants.MDMConstants;
 
 public class DroidSharkActivity extends FragmentActivity
 {
@@ -44,7 +44,7 @@ public class DroidSharkActivity extends FragmentActivity
 	protected UIBinder uib;
 	private SnifferFragment snifferFragment;
 	private PacketViewFragment packetViewFragment;
-	private FrameLayout firstPane, secondPane, thirdPane;
+	private FrameLayout firstPane, secondPane;
 	private ActionBar.Tab mSnifTab, mPVTab;
 	private ActionBar mActionBar;
 	
@@ -76,20 +76,65 @@ public class DroidSharkActivity extends FragmentActivity
     {
         super.onCreate(savedInstanceState);
         
+        //Check to see if tcpdump is present
+        try
+        {
+        	FileInputStream fis = openFileInput("tcpdump");
+        	fis.close();
+        }
+        catch(FileNotFoundException e)
+		{
+        	try
+        	{
+        		//Create tcpdump
+				InputStream is = getResources().openRawResource(R.raw.tcpdump);
+				FileOutputStream fos = openFileOutput("tcpdump", MODE_PRIVATE);
+				byte[] b = new byte[1801155];
+				is.read(b);				
+				fos.write(b);
+				
+				is.close();
+				fos.close();
+				
+				Runtime.getRuntime().exec(new String[] {"chmod", "755", getFilesDir().getAbsolutePath() + "/tcpdump"});
+				
+        	}
+        	catch(Exception ex)
+        	{
+        		Log.e(getClass().getSimpleName(), "Exception creating tcpdump, message=" + ex.getMessage());
+        	}
+		} 
+		catch (IOException e)
+		{
+			Log.e(getClass().getSimpleName(), "IOException, message=" + e.getMessage());
+		}
+        
+//        try
+//        {
+//	        File file = getFilesDir();
+//			Process proc = Runtime.getRuntime().exec(new String[] {"chmod", "755", file.getAbsolutePath() + "/tcpdump"});
+//			BufferedReader br = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+//			String line;
+//			while((line = br.readLine()) != null)
+//			{
+//				Log.d("chmod", line);
+//			}
+//			br.close();
+//        }
+//        catch(Exception e)
+//        {
+//        	Log.e(getClass().getSimpleName(), "Error running chmod, message=" + e.getMessage());
+//        }
+		
         startService(new Intent(this, UIManagerService.class));
         
         setContentView(R.layout.main);
 
 		firstPane = (FrameLayout) findViewById(R.id.first_pane);
 		secondPane = (FrameLayout) findViewById(R.id.second_pane);
-		//thirdPane = (FrameLayout) findViewById(R.id.third_pane);
 
 		if (MDMConstants.DEBUG)
 			Log.d(TAG, "Running on device: " + android.os.Build.MODEL);
-
-		// Spinning progress icon for waiting on browse/search results.
-		//progressDialog = new ProgressDialog(this);
-		//progressDialog.setMessage("Waiting for Response");
 
 		// Fragments are saved in the instance state by default, so they don't
 		// have to be recreated.
@@ -97,13 +142,11 @@ public class DroidSharkActivity extends FragmentActivity
 		{
 			snifferFragment = new SnifferFragment();
 			packetViewFragment = new PacketViewFragment();
-			//nowPlayingFragment = new NowPlayingFragment();
 			FragmentTransaction transaction = getSupportFragmentManager()
 					.beginTransaction();
 
 			transaction.add(R.id.first_pane, snifferFragment, "sniffer");
-			transaction.add(R.id.second_pane, packetViewFragment, "packetView");
-			//transaction.add(R.id.third_pane, nowPlayingFragment, "nowplaying");
+			transaction.add(R.id.second_pane, packetViewFragment, "packetView");;
 			transaction.commit();
 		} else
 		{
@@ -111,8 +154,6 @@ public class DroidSharkActivity extends FragmentActivity
 					.findFragmentByTag("sniffer");
 			packetViewFragment = (PacketViewFragment) getSupportFragmentManager()
 					.findFragmentByTag("packetView");
-			//nowPlayingFragment = (NowPlayingFragment) getSupportFragmentManager()
-					//.findFragmentByTag("nowplaying");
 			currPane = savedInstanceState.getInt("currPane");
 		}
 
@@ -121,8 +162,6 @@ public class DroidSharkActivity extends FragmentActivity
 			showSniffer();
 		else if (currPane == MDMConstants.PACKETVIEWPANE)
 			showPacketView();
-		//else
-			//showNowPlaying();
 
 		mActionBar = getSupportActionBar();
 		mActionBar.setDisplayHomeAsUpEnabled(false);
@@ -152,18 +191,7 @@ public class DroidSharkActivity extends FragmentActivity
 
 		// setup shared preferences
 		//prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		//prefs.registerOnSharedPreferenceChangeListener(this);
-
-		//serverMode = prefs.getBoolean(getString(R.string.server_pref), false);
-		//maxItems = Long.valueOf(prefs.getString(
-				//getString(R.string.max_items_pref), "100"));
-
-		
-		if (Build.VERSION.SDK_INT > Build.VERSION_CODES.HONEYCOMB)
-			StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
-					.permitNetwork().build());
-		
-        //setContentView(R.layout.main);
+		//prefs.registerOnSharedPreferenceChangeListener(this);		
     }
     
  // needed for ActionBar
@@ -312,35 +340,9 @@ public class DroidSharkActivity extends FragmentActivity
 	}
 	
 	public void showSniffer()
-	{/*
-		if (this.getResources().getBoolean(R.bool.has_two_panes))
-		{
-			firstPane.setVisibility(View.GONE);
-			secondPane.setVisibility(View.VISIBLE);
-			thirdPane.setVisibility(View.VISIBLE);
-
-			// calculate px height to remove 'border' on left side
-			int padDp = 5; // in dp
-			final float scale = getResources().getDisplayMetrics().density;
-			int padPx = (int) (padDp * scale + 0.5f);
-			thirdPane.setPadding(0, padPx, padPx, padPx);
-		}
-		else
-		{
-			firstPane.setVisibility(View.GONE);
-			secondPane.setVisibility(View.GONE);
-			thirdPane.setVisibility(View.VISIBLE);
-		}
-		currPane = MDMConstants.NOWPLAYINGPANE;
-		if (mNowPlayTab != null)
-			mActionBar.setSelectedNavigationItem(mNowPlayTab.getPosition());
-
-		if (nowPlayingFragment.isFullscreen())
-			nowPlayingFragment.disableFullscreen();*/
-		
+	{		
 		firstPane.setVisibility(View.VISIBLE);
 		secondPane.setVisibility(View.GONE);
-		//thirdPane.setVisibility(View.GONE);
 		currPane = MDMConstants.SNIFFERPANE;
 		
 		if (mSnifTab != null)
@@ -348,35 +350,9 @@ public class DroidSharkActivity extends FragmentActivity
 	}
 	
 	public void showPacketView()
-	{/*
-		if (this.getResources().getBoolean(R.bool.has_two_panes))
-		{
-			firstPane.setVisibility(View.GONE);
-			secondPane.setVisibility(View.VISIBLE);
-			thirdPane.setVisibility(View.VISIBLE);
-
-			// calculate px height to remove 'border' on left side
-			int padDp = 5; // in dp
-			final float scale = getResources().getDisplayMetrics().density;
-			int padPx = (int) (padDp * scale + 0.5f);
-			thirdPane.setPadding(0, padPx, padPx, padPx);
-		}
-		else
-		{
-			firstPane.setVisibility(View.GONE);
-			secondPane.setVisibility(View.GONE);
-			thirdPane.setVisibility(View.VISIBLE);
-		}
-		currPane = MDMConstants.NOWPLAYINGPANE;
-		if (mNowPlayTab != null)
-			mActionBar.setSelectedNavigationItem(mNowPlayTab.getPosition());
-
-		if (nowPlayingFragment.isFullscreen())
-			nowPlayingFragment.disableFullscreen();*/
-		
+	{		
 		firstPane.setVisibility(View.GONE);
 		secondPane.setVisibility(View.VISIBLE);
-		//thirdPane.setVisibility(View.GONE);
 		currPane = MDMConstants.PACKETVIEWPANE;
 		
 		if (mPVTab != null)
