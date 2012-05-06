@@ -26,7 +26,7 @@ public class UIManagerService extends Service
 {
 	protected static final String TAG = "UIManagerService";
 
-	// Telephony Listener
+	// Telephony Listener blah
 	PhoneStateListener phoneStateListener = new PhoneStateListener()
 	{
 		@Override
