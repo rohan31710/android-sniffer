@@ -3,104 +3,117 @@ package edu.droidshark.android.ui.fragments.activity;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.app.SupportActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
-import android.widget.ListView;
-import edu.droidshark.R;
-import edu.droidshark.android.ui.activities.DroidSharkActivity;
+import android.widget.Spinner;
 
-public class SnifferFragment extends FragmentWithBinder
+import com.actionbarsherlock.app.SherlockFragment;
+
+import edu.droidshark.R;
+import edu.droidshark.android.services.TCPDumpService;
+import edu.droidshark.android.ui.activities.DroidSharkActivity;
+import edu.droidshark.constants.SnifferConstants;
+
+public class SnifferFragment extends SherlockFragment implements OnItemSelectedListener
 {
 	protected final String LOG_TAG = getClass().getSimpleName();
 	protected DroidSharkActivity droidSharkActivity;
-	private ListView packetlist;
-	//private SnifferAdapter snifferAdapter;
-	private static final String[] items = {"packet 1", "packet 2"};
-	private Process proc;
-	
+	private static final String TAG = "SnifferFragment";
+	private ImageButton startButton, stopButton;
+	private int deviceId = 1;
+
 	@Override
-	public void onAttach(SupportActivity activity)
+	public void onAttach(Activity activity)
 	{
 		super.onAttach(activity);
 		droidSharkActivity = (DroidSharkActivity) activity;
 	}
 
 	@Override
-	public void onCreate(Bundle savedInstanceState)
-	{
-		super.onCreate(savedInstanceState);
-		//snifferAdapter = new SnifferAdapter(this);
-	}
-
-	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
 			Bundle savedInstanceState)
 	{
-		View v = inflater.inflate(R.layout.sniffer_layout, container,
-				false);
+		View v = inflater.inflate(R.layout.sniffer_layout, container, false);
 		
-		packetlist = (ListView) v.findViewById(R.id.packetlist);
-		packetlist.setAdapter(new ArrayAdapter<String>(droidSharkActivity, android.R.layout.simple_list_item_1, items));
-		
-		((ImageButton) v.findViewById(R.id.startButton)).
-				setOnClickListener(new OnClickListener()
-				{
-					public void onClick(View v)
-					{							
-						Thread captureThread = new Thread(new Runnable()
-						{
+		startButton = (ImageButton) v.findViewById(R.id.startButton);
+		stopButton = (ImageButton) v.findViewById(R.id.stopButton);
 
-							@Override
-							public void run() 
-							{
-								try
-								{
-									proc = Runtime.getRuntime().exec(new String[] {"su", "-c", getActivity().getFilesDir().getAbsolutePath() + "/tcpdump -X -n -s 0 -w "
-											+ getActivity().getExternalFilesDir(null) + "/capture.pcap"});
-								} catch (IOException e)
-								{
-									Log.e("tcpdump", "Error running tcpdump, msg=" + e.getMessage());
-								}
-								
-							}
-							
-						});
-						captureThread.run();
-					}
-				});
-		((ImageButton) v.findViewById(R.id.stopButton)).
-				setOnClickListener(new OnClickListener()
+		((ImageButton) v.findViewById(R.id.startButton))
+				.setOnClickListener(new OnClickListener()
 				{
 					public void onClick(View v)
 					{
-						try 
-						{
-							Process proc = Runtime.getRuntime().exec(new String[] {"su", "-c", "kill -9 $(busybox pidof tcpdump)"});
-							BufferedReader br = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-							String line;
-							while((line = br.readLine()) != null)
-							{
-								Log.e("kill", line);
-							}
-							br.close();
-						} catch (IOException e)
-						{
-							Log.e("tcpdump", "Error killing tcpdump, msg=" + e.getMessage());
-						}
+						//Start tcpdump service and pass options
+						Intent i = new Intent(getActivity(), TCPDumpService.class);
+						i.putExtra(SnifferConstants.TCPDUMP_OPTIONS, "-i " + deviceId + "-X -n -s 0 -w");
+						getActivity().startService(i);
+						
+						startButton.setEnabled(false);
+						stopButton.setEnabled(true);
+					}
+				});
+		((ImageButton) v.findViewById(R.id.stopButton))
+				.setOnClickListener(new OnClickListener()
+				{
+					public void onClick(View v)
+					{
+						//Stop tcpdump service
+						getActivity().stopService(new Intent(getActivity(), TCPDumpService.class));
+						
+						startButton.setEnabled(true);
+						stopButton.setEnabled(false);
 					}
 				});
 		
-		//SharedPreferences prefs = PreferenceManager
-				//.getDefaultSharedPreferences(droidSharkActivity);
-		
+		try
+		{
+			//Run tcpdump to get device list
+			Process proc = Runtime.getRuntime().exec(
+					new String[] { "su", "-c",
+							getActivity().getFilesDir().getAbsolutePath() + "/tcpdump -D" });
+			String line;
+			//Parse process list to find tcpdump pid
+			BufferedReader br = new BufferedReader(new InputStreamReader(
+					proc.getInputStream()));
+			List<String> devices = new ArrayList<String>();
+			while ((line = br.readLine()) != null)
+			{
+				devices.add(line);
+			}
+			
+			Spinner deviceSpinner = (Spinner) v.findViewById(R.id.deviceSpinner);
+			deviceSpinner.setOnItemSelectedListener(this);
+			
+			ArrayAdapter<String> aa = new ArrayAdapter<String>(getActivity(),
+					android.R.layout.simple_spinner_item,
+					devices);
+			
+			aa.setDropDownViewResource(
+					android.R.layout.simple_spinner_dropdown_item);
+			deviceSpinner.setAdapter(aa);
+
+			
+		} catch (IOException e)
+		{
+			Log.e("tcpdump", "Error running tcpdump, msg=" + e.getMessage());
+		}
+
+		// SharedPreferences prefs = PreferenceManager
+		// .getDefaultSharedPreferences(droidSharkActivity);
+
 		return v;
 	}
 
@@ -109,29 +122,18 @@ public class SnifferFragment extends FragmentWithBinder
 	{
 		super.onResume();
 	}
-
-	@Override
-	public void onStart()
-	{
-		super.onStart();
-	}
-
-	@Override
-	public void onPause()
-	{
-		super.onPause();
-	}
-
-	@Override
-	public void onActivityCreated(Bundle savedInstanceState)
-	{
-		super.onActivityCreated(savedInstanceState);
-	}
 	
 	@Override
-	protected void doAfterBind()
+	public void onItemSelected(AdapterView<?> parent, View v, int position,
+			long id)
 	{
-		// TODO Auto-generated method stub
+		Log.d(TAG, "setting deviceId to " + String.valueOf(position + 1));
+		deviceId = position + 1;
+	}
+
+	@Override
+	public void onNothingSelected(AdapterView<?> parent)
+	{
 		
 	}
 

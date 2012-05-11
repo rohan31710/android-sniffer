@@ -18,14 +18,22 @@
 
     <style name="AppTheme" parent="@style/Theme.Sherlock">
         <item name="android:windowTitleSize">@dimen/actionbar_height</item>
-        <item name="abBackground">@color/action_bar_color</item>
-        <item name="abBackgroundStacked">@color/action_bar2_color</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="actionBarSize">@dimen/actionbar_height</item>
+        <item name="android:actionBarSize">@dimen/actionbar_height</item>
+        <item name="actionBarStyle">@style/ABStyle</item>
+        <item name="android:actionBarStyle">@style/ABStyle</item>
         <item name="actionBarTabStyle">@style/MediaActionBarTabStyle</item>
-
+        <item name="android:actionBarTabStyle">@style/MediaActionBarTabStyle</item>
     </style>
 
+    <style name="ABStyle" parent="Widget.Sherlock.ActionBar">
+        <item name="background">@color/action_bar_color</item>
+        <item name="backgroundStacked">@color/action_bar2_color</item>
+        <item name="android:background">@color/action_bar_color</item>
+        <item name="android:backgroundStacked">@color/action_bar2_color</item>
+    </style>
+    
     <style name="MediaActionBarTabStyle" parent="Widget.Sherlock.ActionBar.TabView">
         <item name="android:paddingLeft">6dp</item>
         <item name="android:paddingRight">6dp</item>
