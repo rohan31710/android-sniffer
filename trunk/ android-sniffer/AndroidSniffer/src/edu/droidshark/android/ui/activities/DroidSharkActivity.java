@@ -7,133 +7,93 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import android.app.Activity;
-import android.content.ComponentName;
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningServiceInfo;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.support.v4.app.ActionBar;
-import android.support.v4.app.ActionBar.Tab;
-import android.support.v4.app.ActionBar.TabListener;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v4.view.Menu;
-import android.support.v4.view.MenuItem;
 import android.util.Log;
-import android.view.MenuInflater;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
-import android.widget.Toast;
+
+import com.actionbarsherlock.app.ActionBar;
+import com.actionbarsherlock.app.ActionBar.Tab;
+import com.actionbarsherlock.app.ActionBar.TabListener;
+import com.actionbarsherlock.app.SherlockFragment;
+import com.actionbarsherlock.app.SherlockFragmentActivity;
+import com.actionbarsherlock.view.Menu;
+import com.actionbarsherlock.view.MenuInflater;
+import com.actionbarsherlock.view.MenuItem;
+
 import edu.droidshark.R;
-import edu.droidshark.android.services.UIBinder;
-import edu.droidshark.android.services.UIManagerService;
-import edu.droidshark.android.ui.fragments.activity.FragmentWithBinder;
 import edu.droidshark.android.ui.fragments.activity.PacketViewFragment;
 import edu.droidshark.android.ui.fragments.activity.SnifferFragment;
-import edu.droidshark.constants.MDMConstants;
+import edu.droidshark.constants.SnifferConstants;
 
-public class DroidSharkActivity extends FragmentActivity
+public class DroidSharkActivity extends SherlockFragmentActivity
 {
-	//public static final int EXIT_MENU_ID = 0x8;
+	// public static final int EXIT_MENU_ID = 0x8;
 	private static final String TAG = "DroidSharkActivity";
-	private int currPane = MDMConstants.SNIFFERPANE;
-	protected UIBinder uib;
+	private int currPane = SnifferConstants.SNIFFERPANE;
 	private SnifferFragment snifferFragment;
 	private PacketViewFragment packetViewFragment;
 	private FrameLayout firstPane, secondPane;
 	private ActionBar.Tab mSnifTab, mPVTab;
 	private ActionBar mActionBar;
-	
-//	/**
-//	 * ActionBarHelper for ActionBar Compatibility support
-//	 */
-//	final ActionBarHelper mActionBarHelper = ActionBarHelper.createInstance(this);
+	public boolean tcpdumpIsRunning;
 
-	protected ServiceConnection servConn = new ServiceConnection()
+	/** Called when the activity is first created. */
+	@Override
+	public void onCreate(Bundle savedInstanceState)
 	{
-		public void onServiceConnected(ComponentName className,
-				IBinder service)
-		{
-			uib = (UIBinder) service;
-			doAfterBind();
+		super.onCreate(savedInstanceState);
 
-		} // end onServiceConnect()
-
-		public void onServiceDisconnected(ComponentName className)
+		// Check to see if tcpdump is present
+		try
 		{
-			releaseBinder();
-			
-		} // end onServiceDisconnected()
-	}; // end anon inner class servConn
-	
-    /** Called when the activity is first created. */
-    @Override
-    public void onCreate(Bundle savedInstanceState)
-    {
-        super.onCreate(savedInstanceState);
-        
-        //Check to see if tcpdump is present
-        try
-        {
-        	FileInputStream fis = openFileInput("tcpdump");
-        	fis.close();
-        }
-        catch(FileNotFoundException e)
+			FileInputStream fis = openFileInput("tcpdump");
+			fis.close();
+		} catch (FileNotFoundException e)
 		{
-        	try
-        	{
-        		//Create tcpdump
+			try
+			{
+				// Create tcpdump
 				InputStream is = getResources().openRawResource(R.raw.tcpdump);
 				FileOutputStream fos = openFileOutput("tcpdump", MODE_PRIVATE);
 				byte[] b = new byte[1801155];
-				is.read(b);				
+				is.read(b);
 				fos.write(b);
-				
+
 				is.close();
 				fos.close();
-				
-				Runtime.getRuntime().exec(new String[] {"chmod", "755", getFilesDir().getAbsolutePath() + "/tcpdump"});
-				
-        	}
-        	catch(Exception ex)
-        	{
-        		Log.e(getClass().getSimpleName(), "Exception creating tcpdump, message=" + ex.getMessage());
-        	}
-		} 
-		catch (IOException e)
+
+				Runtime.getRuntime().exec(
+						new String[] { "chmod", "755",
+								getFilesDir().getAbsolutePath() + "/tcpdump" });
+
+			} catch (Exception ex)
+			{
+				Log.e(getClass().getSimpleName(),
+						"Exception creating tcpdump, message="
+								+ ex.getMessage());
+			}
+		} catch (IOException e)
 		{
-			Log.e(getClass().getSimpleName(), "IOException, message=" + e.getMessage());
+			Log.e(getClass().getSimpleName(),
+					"IOException, message=" + e.getMessage());
 		}
-        
-//        try
-//        {
-//	        File file = getFilesDir();
-//			Process proc = Runtime.getRuntime().exec(new String[] {"chmod", "755", file.getAbsolutePath() + "/tcpdump"});
-//			BufferedReader br = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-//			String line;
-//			while((line = br.readLine()) != null)
-//			{
-//				Log.d("chmod", line);
-//			}
-//			br.close();
-//        }
-//        catch(Exception e)
-//        {
-//        	Log.e(getClass().getSimpleName(), "Error running chmod, message=" + e.getMessage());
-//        }
-		
-        startService(new Intent(this, UIManagerService.class));
-        
-        setContentView(R.layout.main);
+
+		setContentView(R.layout.main);
 
 		firstPane = (FrameLayout) findViewById(R.id.first_pane);
 		secondPane = (FrameLayout) findViewById(R.id.second_pane);
 
-		if (MDMConstants.DEBUG)
+		if (SnifferConstants.DEBUG)
 			Log.d(TAG, "Running on device: " + android.os.Build.MODEL);
 
 		// Fragments are saved in the instance state by default, so they don't
@@ -146,7 +106,7 @@ public class DroidSharkActivity extends FragmentActivity
 					.beginTransaction();
 
 			transaction.add(R.id.first_pane, snifferFragment, "sniffer");
-			transaction.add(R.id.second_pane, packetViewFragment, "packetView");;
+			transaction.add(R.id.second_pane, packetViewFragment, "packetView");
 			transaction.commit();
 		} else
 		{
@@ -158,62 +118,73 @@ public class DroidSharkActivity extends FragmentActivity
 		}
 
 		// BEGIN FRAGMENT STUFF
-		if (currPane == MDMConstants.SNIFFERPANE)
+		if (currPane == SnifferConstants.SNIFFERPANE)
 			showSniffer();
-		else if (currPane == MDMConstants.PACKETVIEWPANE)
+		else if (currPane == SnifferConstants.PACKETVIEWPANE)
 			showPacketView();
 
 		mActionBar = getSupportActionBar();
 		mActionBar.setDisplayHomeAsUpEnabled(false);
 		mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
-		
+
 		mSnifTab = mActionBar
 				.newTab()
 				.setText(R.string.sniffer)
 				.setTabListener(
 						new ActionTabListener<SnifferFragment>(this, "Snif",
 								SnifferFragment.class));
-		if (currPane == MDMConstants.SNIFFERPANE)
+		if (currPane == SnifferConstants.SNIFFERPANE)
 			mActionBar.addTab(mSnifTab, true);
 		else
 			mActionBar.addTab(mSnifTab, false);
-		
+
 		mPVTab = mActionBar
 				.newTab()
 				.setText(R.string.packet_view)
 				.setTabListener(
 						new ActionTabListener<PacketViewFragment>(this, "PV",
 								PacketViewFragment.class));
-		if (currPane == MDMConstants.PACKETVIEWPANE)
+		if (currPane == SnifferConstants.PACKETVIEWPANE)
 			mActionBar.addTab(mPVTab, true);
 		else
 			mActionBar.addTab(mPVTab, false);
 
 		// setup shared preferences
-		//prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		//prefs.registerOnSharedPreferenceChangeListener(this);		
-    }
-    
- // needed for ActionBar
-	@Override
-	protected void onPostCreate(Bundle savedInstanceState) {
-		super.onPostCreate(savedInstanceState);
-		//mActionBarHelper.onPostCreate(savedInstanceState);
+		// prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		// prefs.registerOnSharedPreferenceChangeListener(this);
 	}
-	
+
+	// needed for ActionBar
+	@Override
+	protected void onPostCreate(Bundle savedInstanceState)
+	{
+		super.onPostCreate(savedInstanceState);
+		// mActionBarHelper.onPostCreate(savedInstanceState);
+	}
+
 	@Override
 	public void onResume()
 	{
 		super.onResume();
-		bindService(new Intent(this, UIManagerService.class), servConn,
-				Context.BIND_AUTO_CREATE);
-	}
+		tcpdumpIsRunning = isTCPDumpRunning();
 
-	@Override
-	public void onPause()
-	{
-		releaseBinder();
-		super.onPause();
+		if (SnifferConstants.DEBUG)
+			Log.d(TAG, "tcpdumpRunning=" + tcpdumpIsRunning);
+
+		// Disable/enable start stop button as appropriate
+		if (tcpdumpIsRunning)
+		{
+			snifferFragment.getView().findViewById(R.id.startButton)
+					.setEnabled(false);
+			snifferFragment.getView().findViewById(R.id.stopButton)
+					.setEnabled(true);
+		} else
+		{
+			snifferFragment.getView().findViewById(R.id.startButton)
+					.setEnabled(true);
+			snifferFragment.getView().findViewById(R.id.stopButton)
+					.setEnabled(false);
+		}
 	}
 
 	@Override
@@ -228,17 +199,37 @@ public class DroidSharkActivity extends FragmentActivity
 		super.onDestroy();
 
 	}
-	
+
+	/**
+	 * Check to see whether tcpdump is already running
+	 * 
+	 * @return true if tcpdump is running
+	 */
+	private boolean isTCPDumpRunning()
+	{
+		ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+		for (RunningServiceInfo service : manager
+				.getRunningServices(Integer.MAX_VALUE))
+		{
+			if ("edu.droidshark.android.services.TCPDumpService"
+					.equals(service.service.getClassName()))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
-		MenuInflater inflater = getMenuInflater();
+		MenuInflater inflater = this.getSupportMenuInflater();
 		inflater.inflate(R.menu.main_menu, menu);
 		// Calling super after populating the menu is necessary here to ensure
 		// that the action bar helpers have a chance to handle this event.
 		return super.onCreateOptionsMenu(menu);
 	}
-	
+
 	@Override
 	public void onSaveInstanceState(Bundle outState)
 	{
@@ -252,66 +243,26 @@ public class DroidSharkActivity extends FragmentActivity
 	{
 		setIntent(intent);
 	}
-	
+
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
 		// Handle item selection
 		switch (item.getItemId())
 		{
-			case R.id.exit:
-				shutdown();
-				return true;
-			
-			//case R.id.settings:
-				//Intent prefsActivity = new Intent(this, MainPreferences.class);
-				//startActivity(prefsActivity);
-				//return true;
+		case R.id.exit:
+			finish();
+			return true;
+
+			// case R.id.settings:
+			// Intent prefsActivity = new Intent(this, MainPreferences.class);
+			// startActivity(prefsActivity);
+			// return true;
 		}
 
 		return super.onOptionsItemSelected(item);
 	}
-	
-	/****** ANDROID ACTIVITY CYCLE ********/
 
-	protected void releaseBinder()
-	{
-		unbindService(servConn);
-		if (uib != null)
-		{
-			uib.finish();
-		}
-		uib = null;
-	}
-
-	protected void doAfterBind()
-	{
-		if (snifferFragment != null)
-			snifferFragment.setBinder(uib);
-		if (packetViewFragment != null)
-			packetViewFragment.setBinder(uib);
-	}
-	
-	/**
-	 * shutdown() Tell the back-end service to stop and close the current
-	 * activity.
-	 */
-	protected void shutdown()
-	{
-		// *** Make sure all sate is saved here ***
-		//releaseBinder();
-
-		/*
-		 * The app will close so fast that the user won't see this Toast. Just
-		 * in case it's taking longer than usual, it will let them know what is
-		 * going on.
-		 */
-		Toast.makeText(getApplicationContext(), "Stopping all services...",
-				Toast.LENGTH_SHORT);
-		stopService(new Intent(this, UIManagerService.class));
-		finish();
-	}
-	
 	/**
 	 * Checks the wifi status
 	 */
@@ -320,12 +271,13 @@ public class DroidSharkActivity extends FragmentActivity
 		WifiManager wifiMgr = (WifiManager) getSystemService(Context.WIFI_SERVICE);
 		if (!wifiMgr.isWifiEnabled() && !("sdk".equals(Build.MODEL)))
 		{
-			//DialogFragment df = new WifiDisabledAlertFragment();
-			//if (getSupportFragmentManager().findFragmentByTag("wifialert") == null)
-				//df.show(getSupportFragmentManager(), "wifialert");
+			// DialogFragment df = new WifiDisabledAlertFragment();
+			// if (getSupportFragmentManager().findFragmentByTag("wifialert") ==
+			// null)
+			// df.show(getSupportFragmentManager(), "wifialert");
 		}
 	}
-	
+
 	/**
 	 * Closes the soft keyboard
 	 * 
@@ -338,34 +290,35 @@ public class DroidSharkActivity extends FragmentActivity
 		InputMethodManager mgr = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
 		mgr.hideSoftInputFromWindow(windowToken, 0);
 	}
-	
+
 	public void showSniffer()
-	{		
+	{
 		firstPane.setVisibility(View.VISIBLE);
 		secondPane.setVisibility(View.GONE);
-		currPane = MDMConstants.SNIFFERPANE;
-		
+		currPane = SnifferConstants.SNIFFERPANE;
+
 		if (mSnifTab != null)
 			mActionBar.setSelectedNavigationItem(mSnifTab.getPosition());
 	}
-	
+
 	public void showPacketView()
-	{		
+	{
 		firstPane.setVisibility(View.GONE);
 		secondPane.setVisibility(View.VISIBLE);
-		currPane = MDMConstants.PACKETVIEWPANE;
-		
+		currPane = SnifferConstants.PACKETVIEWPANE;
+
 		if (mPVTab != null)
 			mActionBar.setSelectedNavigationItem(mPVTab.getPosition());
 	}
-	
-	public class ActionTabListener<T extends FragmentWithBinder> implements
-		TabListener
+
+	public class ActionTabListener<T extends SherlockFragment> implements
+			TabListener
 	{
 		private final Activity mActivity;
 		private final String mTag;
-		//private final Class<T> mClass;
-		
+
+		// private final Class<T> mClass;
+
 		/**
 		 * @param activity
 		 * @param tag
@@ -375,23 +328,22 @@ public class DroidSharkActivity extends FragmentActivity
 		{
 			mActivity = activity;
 			mTag = tag;
-			//mClass = clz;
+			// mClass = clz;
 		}
-		
+
 		public void onTabReselected(Tab tab, FragmentTransaction unused)
 		{
 			// User selected the already selected tab. do nothing
-			
+
 		}
-		
+
 		public void onTabSelected(Tab tab, FragmentTransaction unused)
 		{
 			// Check if fragment is already initialized
 			if (mTag == "Snif")
 			{
 				((DroidSharkActivity) mActivity).showSniffer();
-			}
-			else if (mTag == "PV")
+			} else if (mTag == "PV")
 			{
 				((DroidSharkActivity) mActivity).showPacketView();
 			}
@@ -402,5 +354,4 @@ public class DroidSharkActivity extends FragmentActivity
 			// do nothing
 		}
 	}
-	
 }

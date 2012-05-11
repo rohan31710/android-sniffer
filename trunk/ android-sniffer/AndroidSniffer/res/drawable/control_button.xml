@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android" >
-    <item>
-      <bitmap android:src="@drawable/button"
+    <item
+     	android:drawable="@drawable/button_status"
         android:gravity="center"
-        android:padding="5dip" />
+        android:padding="5dip" >
     </item>
     <item
         android:drawable="@drawable/glow_highlight"

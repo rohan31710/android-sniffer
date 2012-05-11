@@ -23,14 +23,12 @@
             android:src="@drawable/stop" />
 
     </LinearLayout>
-    
-    <ListView
-        android:id="@+id/packetlist"
-        android:layout_width="match_parent"
+
+    <Spinner
+        android:id="@+id/deviceSpinner"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
-        android:layout_below="@+id/sniffer_ctrl_layout" >
-    </ListView>
+        android:layout_below="@+id/sniffer_ctrl_layout" />
 
 </RelativeLayout>
