@@ -1,13 +1,8 @@
 package edu.droidshark.android.ui.fragments.activity;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.List;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -23,9 +18,8 @@ import android.widget.Spinner;
 import com.actionbarsherlock.app.SherlockFragment;
 
 import edu.droidshark.R;
-import edu.droidshark.android.services.TCPDumpService;
 import edu.droidshark.android.ui.activities.DroidSharkActivity;
-import edu.droidshark.constants.SnifferConstants;
+import edu.droidshark.tcpdump.TCPDumpUtils;
 
 public class SnifferFragment extends SherlockFragment implements OnItemSelectedListener
 {
@@ -51,65 +45,45 @@ public class SnifferFragment extends SherlockFragment implements OnItemSelectedL
 		startButton = (ImageButton) v.findViewById(R.id.startButton);
 		stopButton = (ImageButton) v.findViewById(R.id.stopButton);
 
+		//Start button action, start tcpdump and service monitoring.
 		((ImageButton) v.findViewById(R.id.startButton))
 				.setOnClickListener(new OnClickListener()
 				{
 					public void onClick(View v)
-					{
-						//Start tcpdump service and pass options
-						Intent i = new Intent(getActivity(), TCPDumpService.class);
-						i.putExtra(SnifferConstants.TCPDUMP_OPTIONS, "-i " + deviceId + "-X -n -s 0 -w");
-						getActivity().startService(i);
-						
+					{						
+						TCPDumpUtils.startTCPDump(getActivity(), "-i " + deviceId + " -X -n -s 0 -w");
+						droidSharkActivity.openFileStream();
 						startButton.setEnabled(false);
 						stopButton.setEnabled(true);
 					}
 				});
+		
+		//Stop button action, stop tcpdump and service monitoring.
 		((ImageButton) v.findViewById(R.id.stopButton))
 				.setOnClickListener(new OnClickListener()
 				{
 					public void onClick(View v)
-					{
-						//Stop tcpdump service
-						getActivity().stopService(new Intent(getActivity(), TCPDumpService.class));
-						
+					{						
+						TCPDumpUtils.stopTCPDump();
+						droidSharkActivity.closeFileStream();
 						startButton.setEnabled(true);
 						stopButton.setEnabled(false);
 					}
 				});
 		
-		try
-		{
-			//Run tcpdump to get device list
-			Process proc = Runtime.getRuntime().exec(
-					new String[] { "su", "-c",
-							getActivity().getFilesDir().getAbsolutePath() + "/tcpdump -D" });
-			String line;
-			//Parse process list to find tcpdump pid
-			BufferedReader br = new BufferedReader(new InputStreamReader(
-					proc.getInputStream()));
-			List<String> devices = new ArrayList<String>();
-			while ((line = br.readLine()) != null)
-			{
-				devices.add(line);
-			}
-			
-			Spinner deviceSpinner = (Spinner) v.findViewById(R.id.deviceSpinner);
-			deviceSpinner.setOnItemSelectedListener(this);
-			
-			ArrayAdapter<String> aa = new ArrayAdapter<String>(getActivity(),
-					android.R.layout.simple_spinner_item,
-					devices);
-			
-			aa.setDropDownViewResource(
-					android.R.layout.simple_spinner_dropdown_item);
-			deviceSpinner.setAdapter(aa);
-
-			
-		} catch (IOException e)
-		{
-			Log.e("tcpdump", "Error running tcpdump, msg=" + e.getMessage());
-		}
+		//Populate spinner with device list
+		List<String> devices = TCPDumpUtils.getDeviceList(getActivity());
+		
+		Spinner deviceSpinner = (Spinner) v.findViewById(R.id.deviceSpinner);
+		deviceSpinner.setOnItemSelectedListener(this);
+		
+		ArrayAdapter<String> aa = new ArrayAdapter<String>(getActivity(),
+				android.R.layout.simple_spinner_item,
+				devices);
+		
+		aa.setDropDownViewResource(
+				android.R.layout.simple_spinner_dropdown_item);
+		deviceSpinner.setAdapter(aa);
 
 		// SharedPreferences prefs = PreferenceManager
 		// .getDefaultSharedPreferences(droidSharkActivity);

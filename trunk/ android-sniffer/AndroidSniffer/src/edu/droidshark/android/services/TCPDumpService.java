@@ -1,100 +1,102 @@
+/**
+ * Created May 10, 2012
+ */
 package edu.droidshark.android.services;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.util.Scanner;
 
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.util.Log;
-import edu.droidshark.constants.SnifferConstants;
+import edu.droidshark.tcpdump.TCPDumpListener;
 
 /**
  * Service for running tcpdump
  * 
  * @author Sam SmithReams
- *
+ * 
  */
 public class TCPDumpService extends Service
 {
+	private TCPDumpBinder binder;
+	private Scanner pcapStream;
+	private TCPDumpListener tListener;
+	private int count;
 	private final String TAG = "TCPDumpService";
+	private Thread scannerThread;
+	private boolean stopScanner;
 
 	@Override
-	public int onStartCommand(Intent intent, int flags, int startId)
+	public void onCreate()
 	{
-		// The options to run tcpdump with
-		final String opts = intent
-				.getStringExtra(SnifferConstants.TCPDUMP_OPTIONS);
+		super.onCreate();
 
-		// Start tcpdump
-		try
-		{
-			Runtime.getRuntime().exec(
-					new String[] {
-							"su",
-							"-c",
-							getFilesDir().getAbsolutePath() + "/tcpdump "
-									+ opts + getExternalFilesDir(null)
-									+ "/capture.pcap" });
-		} catch (IOException e)
-		{
-			Log.e("tcpdump", "Error running tcpdump, msg=" + e.getMessage());
-		}
-
-		return (START_NOT_STICKY);
+		binder = new TCPDumpBinder(this);
 	}
 
 	@Override
 	public IBinder onBind(Intent intent)
 	{
-		return null;
+		return binder;
 	}
 
 	@Override
 	public void onDestroy()
 	{
-		try
+		super.onDestroy();
+		
+		closeFileStream();
+	}
+	
+	/**
+	 * Opens the pcap file that tcpdump is writing to and monitors it
+	 */
+	public void openFileStream()
+	{
+		pcapStream = new Scanner(getExternalFilesDir(null)
+					+ "/capture.pcap");
+		
+		//TODO: This is just a bogus test, one line != one packet
+		scannerThread = new Thread(new Runnable()
 		{
-			//Run ps to get the process list
-			Process proc = Runtime.getRuntime().exec("ps");
-			BufferedReader br = new BufferedReader(new InputStreamReader(
-					proc.getInputStream()));
-			String line;
-			//Parse process list to find tcpdump pid
-			while ((line = br.readLine()) != null)
+			@Override
+			public void run()
 			{
-				if (line.contains("tcpdump") && line.contains("edu.droidshark"))
-				{
-					String pid[] = line.split("\\s+");
-					
-					if (SnifferConstants.DEBUG)
-						Log.d(TAG, "About to kill pid " + pid[1]);
-
-					//Kill tcpdump
-					Process proc2 = Runtime.getRuntime().exec(
-							new String[] { "su", "-c", "kill -9 " + pid[1] });
-					BufferedReader br2 = new BufferedReader(
-							new InputStreamReader(proc2.getErrorStream()));
-					
-					//Check for errors during the kill process
-					String line2;
-					while ((line2 = br2.readLine()) != null)
-					{
-						Log.e(TAG, "kill error=" + line2);
-					}
-					br2.close();
+				while (!stopScanner && pcapStream.hasNext())
+				{					
+					count++;
+					if(tListener != null)
+						tListener.packetReceived(count);
 				}
 			}
-			br.close();
-			
-			if (SnifferConstants.DEBUG)
-				Log.d(TAG, "Done with killing tcpdump");
-		} catch (IOException e)
-		{
-			Log.e(TAG, "Error killing tcpdump, msg=" + e.getMessage());
-		}
-		super.onDestroy();
+
+		});
+		scannerThread.start();
+	}
+	
+	/**
+	 * Closes the stream for the pcap file
+	 */
+	public void closeFileStream()
+	{
+		stopScanner = true;
+		if(pcapStream != null)
+			pcapStream.close();
 	}
 
+	/**
+	 * @return the tListener
+	 */
+	public TCPDumpListener gettListener()
+	{
+		return tListener;
+	}
+
+	/**
+	 * @param tListener the tListener to set
+	 */
+	public void settListener(TCPDumpListener tListener)
+	{
+		this.tListener = tListener;
+	}
 }
