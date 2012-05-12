@@ -2,15 +2,13 @@ package edu.droidshark.android.ui.activities;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 
 import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.ActivityManager.RunningServiceInfo;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -31,9 +29,13 @@ import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
 
 import edu.droidshark.R;
+import edu.droidshark.android.services.TCPDumpBinder;
+import edu.droidshark.android.services.TCPDumpService;
 import edu.droidshark.android.ui.fragments.activity.PacketViewFragment;
 import edu.droidshark.android.ui.fragments.activity.SnifferFragment;
 import edu.droidshark.constants.SnifferConstants;
+import edu.droidshark.tcpdump.TCPDumpListener;
+import edu.droidshark.tcpdump.TCPDumpUtils;
 
 public class DroidSharkActivity extends SherlockFragmentActivity
 {
@@ -45,7 +47,39 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	private FrameLayout firstPane, secondPane;
 	private ActionBar.Tab mSnifTab, mPVTab;
 	private ActionBar mActionBar;
-	public boolean tcpdumpIsRunning;
+	public boolean tcpdumpIsRunning, isBound;
+	private TCPDumpService tService;
+	
+	private ServiceConnection sConn = new ServiceConnection()
+	{
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see
+		 * android.content.ServiceConnection#onServiceConnected(android.content
+		 * .ComponentName, android.os.IBinder)
+		 */
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder service)
+		{
+			tService = ((TCPDumpBinder) service).getService();
+			tService.settListener(new TCPDumpCallbacks());
+			isBound = true;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see
+		 * android.content.ServiceConnection#onServiceDisconnected(android.content
+		 * .ComponentName)
+		 */
+		@Override
+		public void onServiceDisconnected(ComponentName name)
+		{
+			isBound = false;
+		}
+	};
 
 	/** Called when the activity is first created. */
 	@Override
@@ -60,28 +94,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 			fis.close();
 		} catch (FileNotFoundException e)
 		{
-			try
-			{
-				// Create tcpdump
-				InputStream is = getResources().openRawResource(R.raw.tcpdump);
-				FileOutputStream fos = openFileOutput("tcpdump", MODE_PRIVATE);
-				byte[] b = new byte[1801155];
-				is.read(b);
-				fos.write(b);
-
-				is.close();
-				fos.close();
-
-				Runtime.getRuntime().exec(
-						new String[] { "chmod", "755",
-								getFilesDir().getAbsolutePath() + "/tcpdump" });
-
-			} catch (Exception ex)
-			{
-				Log.e(getClass().getSimpleName(),
-						"Exception creating tcpdump, message="
-								+ ex.getMessage());
-			}
+			// If file not found need to create
+			TCPDumpUtils.createTCPDump(this);
 		} catch (IOException e)
 		{
 			Log.e(getClass().getSimpleName(),
@@ -123,6 +137,9 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		else if (currPane == SnifferConstants.PACKETVIEWPANE)
 			showPacketView();
 
+		//Start service onCreate(), so it is not destroyed when activity unbinds.
+		startService(new Intent(this, TCPDumpService.class));
+		
 		mActionBar = getSupportActionBar();
 		mActionBar.setDisplayHomeAsUpEnabled(false);
 		mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
@@ -153,21 +170,22 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		// prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		// prefs.registerOnSharedPreferenceChangeListener(this);
 	}
-
-	// needed for ActionBar
+	
 	@Override
-	protected void onPostCreate(Bundle savedInstanceState)
+	protected void onStart()
 	{
-		super.onPostCreate(savedInstanceState);
-		// mActionBarHelper.onPostCreate(savedInstanceState);
+		super.onStart();
+		Log.d(TAG, "Binding TCPDumpService");
+		bindService(new Intent(this, TCPDumpService.class), sConn,
+				Context.BIND_AUTO_CREATE);
 	}
 
 	@Override
 	public void onResume()
 	{
 		super.onResume();
-		tcpdumpIsRunning = isTCPDumpRunning();
-
+		tcpdumpIsRunning = TCPDumpUtils.isTCPDumpRunning();
+		
 		if (SnifferConstants.DEBUG)
 			Log.d(TAG, "tcpdumpRunning=" + tcpdumpIsRunning);
 
@@ -191,35 +209,16 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	public void onStop()
 	{
 		super.onStop();
-	}
-
-	@Override
-	public void onDestroy()
-	{
-		super.onDestroy();
-
-	}
-
-	/**
-	 * Check to see whether tcpdump is already running
-	 * 
-	 * @return true if tcpdump is running
-	 */
-	private boolean isTCPDumpRunning()
-	{
-		ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-		for (RunningServiceInfo service : manager
-				.getRunningServices(Integer.MAX_VALUE))
+		//Unbind the service
+		if (isBound)
 		{
-			if ("edu.droidshark.android.services.TCPDumpService"
-					.equals(service.service.getClassName()))
-			{
-				return true;
-			}
+			tService.settListener(null);
+			if(SnifferConstants.DEBUG)
+				Log.d(TAG, "Unbinding TCPDumpService");
+			unbindService(sConn);
 		}
-		return false;
 	}
-
+	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
@@ -239,18 +238,13 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	}
 
 	@Override
-	protected void onNewIntent(Intent intent)
-	{
-		setIntent(intent);
-	}
-
-	@Override
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
 		// Handle item selection
 		switch (item.getItemId())
 		{
 		case R.id.exit:
+			stopService(new Intent(this, TCPDumpService.class));
 			finish();
 			return true;
 
@@ -263,6 +257,16 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		return super.onOptionsItemSelected(item);
 	}
 
+	public void openFileStream()
+	{
+		tService.openFileStream();
+	}
+	
+	public void closeFileStream()
+	{
+		tService.closeFileStream();
+	}
+	
 	/**
 	 * Checks the wifi status
 	 */
@@ -309,6 +313,34 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 
 		if (mPVTab != null)
 			mActionBar.setSelectedNavigationItem(mPVTab.getPosition());
+	}
+	
+	/**
+	 * A class for doing something with callbacks from TCPDumpService
+	 * 
+	 * @author Sam SmithReams
+	 *
+	 */
+	public class TCPDumpCallbacks implements TCPDumpListener
+	{
+
+		/* (non-Javadoc)
+		 * @see edu.droidshark.tcpdump.TCPDumpListener#packetReceived(int)
+		 */
+		@Override
+		public void packetReceived(final int numPackets)
+		{
+			DroidSharkActivity.this.runOnUiThread(new Runnable()
+			{
+
+				@Override
+				public void run()
+				{
+					packetViewFragment.updatePacketCount(numPackets);					
+				}
+				
+			});
+		}	
 	}
 
 	public class ActionTabListener<T extends SherlockFragment> implements
