@@ -328,7 +328,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		 * @see edu.droidshark.tcpdump.TCPDumpListener#packetReceived(int)
 		 */
 		@Override
-		public void packetReceived(final int numPackets)
+		public void packetReceived(final int numPackets, String line)
 		{
 			DroidSharkActivity.this.runOnUiThread(new Runnable()
 			{
