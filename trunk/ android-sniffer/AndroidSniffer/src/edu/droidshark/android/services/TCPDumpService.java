@@ -3,11 +3,13 @@
  */
 package edu.droidshark.android.services;
 
-import java.util.Scanner;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
+import android.util.Log;
 import edu.droidshark.tcpdump.TCPDumpListener;
 
 /**
@@ -19,7 +21,7 @@ import edu.droidshark.tcpdump.TCPDumpListener;
 public class TCPDumpService extends Service
 {
 	private TCPDumpBinder binder;
-	private Scanner pcapStream;
+	private BufferedInputStream pcapStream;
 	private TCPDumpListener tListener;
 	private int count;
 	private final String TAG = "TCPDumpService";
@@ -53,26 +55,45 @@ public class TCPDumpService extends Service
 	 */
 	public void openFileStream()
 	{
-		pcapStream = new Scanner(getExternalFilesDir(null)
-					+ "/capture.pcap");
+		stopScanner = false;
 		
 		//TODO: This is just a bogus test, one line != one packet
 		scannerThread = new Thread(new Runnable()
 		{
 			@Override
 			public void run()
-			{
+			{	
 				try
 				{
 					Thread.sleep(2000);
-				} catch (InterruptedException e){}
-				
-				while (!stopScanner && pcapStream.hasNext())
-				{					
-					count++;
-					pcapStream.next();
-					if(tListener != null)
-						tListener.packetReceived(count);
+					
+					pcapStream = new BufferedInputStream(new FileInputStream(getExternalFilesDir(null)
+							+ "/capture.pcap"));
+					
+					while (!stopScanner)
+					{						
+						while(pcapStream.available() > 0)
+						{
+							char[] line = new char[1000];
+							char ch;
+							int counter = 0;
+							while(pcapStream.available() > 0 
+									&& (ch = (char) pcapStream.read()) != '\n')
+							{
+								line[counter] = ch;
+								counter++;
+							}
+							count++;
+							if(tListener != null)
+								tListener.packetReceived(count, String.valueOf(line));
+						}
+						Thread.sleep(2000);
+					}
+					pcapStream.close();
+				}
+				catch(Exception e)
+				{
+					Log.e(TAG, "Error reading pcap file, msg=" + e.getMessage());
 				}
 			}
 
@@ -86,8 +107,6 @@ public class TCPDumpService extends Service
 	public void closeFileStream()
 	{
 		stopScanner = true;
-		if(pcapStream != null)
-			pcapStream.close();
 	}
 
 	/**
