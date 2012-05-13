@@ -62,9 +62,15 @@ public class TCPDumpService extends Service
 			@Override
 			public void run()
 			{
+				try
+				{
+					Thread.sleep(2000);
+				} catch (InterruptedException e){}
+				
 				while (!stopScanner && pcapStream.hasNext())
 				{					
 					count++;
+					pcapStream.next();
 					if(tListener != null)
 						tListener.packetReceived(count);
 				}
