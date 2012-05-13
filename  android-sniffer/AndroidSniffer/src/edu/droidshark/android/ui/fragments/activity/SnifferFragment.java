@@ -57,7 +57,8 @@ public class SnifferFragment extends SherlockFragment implements
 //										+ " -X -n -s 0 -w " + 
 //										+ getActivity().getExternalFilesDir(null)
 //										+ "/capture.pcap" )); //write to file
-										+ " -X -n -s 0")); //write to std out
+//										+ " -X -n -s 0")); //write to std out
+										+ " -X -n -s 0 -U -w -")); //write raw to std out
 						droidSharkActivity.openFileStream();
 						startButton.setEnabled(false);
 						stopButton.setEnabled(true);
