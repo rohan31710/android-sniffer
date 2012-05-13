@@ -49,6 +49,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	private ActionBar mActionBar;
 	public boolean tcpdumpIsRunning, isBound;
 	private TCPDumpService tService;
+	private Process tProcess;
 	
 	private ServiceConnection sConn = new ServiceConnection()
 	{
@@ -259,7 +260,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 
 	public void openFileStream()
 	{
-		tService.openFileStream();
+		tService.openFileStream(tProcess);
 	}
 	
 	public void closeFileStream()
@@ -315,6 +316,22 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 			mActionBar.setSelectedNavigationItem(mPVTab.getPosition());
 	}
 	
+	/**
+	 * @return the tProcess
+	 */
+	public Process gettProcess()
+	{
+		return tProcess;
+	}
+
+	/**
+	 * @param tProcess the tProcess to set
+	 */
+	public void settProcess(Process tProcess)
+	{
+		this.tProcess = tProcess;
+	}
+
 	/**
 	 * A class for doing something with callbacks from TCPDumpService
 	 * 

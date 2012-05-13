@@ -4,12 +4,16 @@
 package edu.droidshark.android.services;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
+import edu.droidshark.constants.SnifferConstants;
 import edu.droidshark.tcpdump.TCPDumpListener;
 
 /**
@@ -53,7 +57,7 @@ public class TCPDumpService extends Service
 	/**
 	 * Opens the pcap file that tcpdump is writing to and monitors it
 	 */
-	public void openFileStream()
+	public void openFileStream(final Process tProcess)
 	{
 		stopScanner = false;
 		
@@ -67,29 +71,54 @@ public class TCPDumpService extends Service
 				{
 					Thread.sleep(2000);
 					
-					pcapStream = new BufferedInputStream(new FileInputStream(getExternalFilesDir(null)
-							+ "/capture.pcap"));
+//					TODO: I'm not sure how we are going to handle this sort of thing. We may need to create our own custom input stream
+//					that blocks on the read command. This is in thinking about using jnetstream, the problem with providing a file
+//					stream directly is that it's going to get to the end of the file and stop reading. The code commented out below is
+//					a way to read from a file stream without getting to the end. Another option might be to have tcpdump running twice, 
+//					one outputting to file stream and the other to stdout.
 					
-					while (!stopScanner)
-					{						
-						while(pcapStream.available() > 0)
-						{
-							char[] line = new char[1000];
-							char ch;
-							int counter = 0;
-							while(pcapStream.available() > 0 
-									&& (ch = (char) pcapStream.read()) != '\n')
-							{
-								line[counter] = ch;
-								counter++;
-							}
-							count++;
-							if(tListener != null)
-								tListener.packetReceived(count, String.valueOf(line));
-						}
-						Thread.sleep(2000);
+//					Read from the input stream of tcpdump
+					BufferedReader br = new BufferedReader(new InputStreamReader(
+							tProcess.getInputStream()));
+					String line;
+					if(SnifferConstants.DEBUG)
+						Log.d(TAG, "waiting for stdout");
+					while ((line = br.readLine()) != null)
+					{
+						if(SnifferConstants.DEBUG)
+							Log.d(TAG, "reading from stdout");
+						count++;
+						if(tListener != null)
+							tListener.packetReceived(count, line);
 					}
-					pcapStream.close();
+					
+//					Continually check the file stream
+//					pcapStream = new BufferedInputStream(new FileInputStream(getExternalFilesDir(null)
+//							+ "/capture.pcap"));
+//					
+//					while (!stopScanner)
+//					{	
+//						if(SnifferConstants.DEBUG)
+//							Log.d(TAG, "avail bytes in stream=" + pcapStream.available());
+//						
+//						while(pcapStream.available() > 0)
+//						{
+//							char[] line = new char[1000];
+//							char ch;
+//							int counter = 0;
+//							while(pcapStream.available() > 0 
+//									&& (ch = (char) pcapStream.read()) != '\n')
+//							{
+//								line[counter] = ch;
+//								counter++;
+//							}
+//							count++;
+//							if(tListener != null)
+//								tListener.packetReceived(count, String.valueOf(line));
+//						}
+//						Thread.sleep(2000);
+//					}
+//					pcapStream.close();
 				}
 				catch(Exception e)
 				{
@@ -98,6 +127,31 @@ public class TCPDumpService extends Service
 			}
 
 		});
+		
+		//Check error output for tcpdump
+		if(SnifferConstants.DEBUG)
+			new Thread(new Runnable()
+			{
+	
+				@Override
+				public void run()
+				{
+					BufferedReader br = new BufferedReader(new InputStreamReader(
+							tProcess.getErrorStream()));
+					String line;
+					try
+					{
+						while ((line = br.readLine()) != null)
+						{
+							Log.d(TAG, "tcpdump stderr msg=" + line);
+						}
+					} catch (IOException e)
+					{
+						Log.e(TAG, e.getMessage());
+					}				
+				}
+				
+			}).start();
 		scannerThread.start();
 	}
 	

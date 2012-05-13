@@ -21,7 +21,8 @@ import edu.droidshark.R;
 import edu.droidshark.android.ui.activities.DroidSharkActivity;
 import edu.droidshark.tcpdump.TCPDumpUtils;
 
-public class SnifferFragment extends SherlockFragment implements OnItemSelectedListener
+public class SnifferFragment extends SherlockFragment implements
+		OnItemSelectedListener
 {
 	protected final String LOG_TAG = getClass().getSimpleName();
 	protected DroidSharkActivity droidSharkActivity;
@@ -41,48 +42,51 @@ public class SnifferFragment extends SherlockFragment implements OnItemSelectedL
 			Bundle savedInstanceState)
 	{
 		View v = inflater.inflate(R.layout.sniffer_layout, container, false);
-		
+
 		startButton = (ImageButton) v.findViewById(R.id.startButton);
 		stopButton = (ImageButton) v.findViewById(R.id.stopButton);
 
-		//Start button action, start tcpdump and service monitoring.
+		// Start button action, start tcpdump and service monitoring.
 		((ImageButton) v.findViewById(R.id.startButton))
 				.setOnClickListener(new OnClickListener()
 				{
 					public void onClick(View v)
-					{						
-						TCPDumpUtils.startTCPDump(getActivity(), "-i " + deviceId + " -X -n -s 0 -w");
+					{
+						droidSharkActivity.settProcess(TCPDumpUtils
+								.startTCPDump(getActivity(), "-i " + deviceId
+//										+ " -X -n -s 0 -w " + 
+//										+ getActivity().getExternalFilesDir(null)
+//										+ "/capture.pcap" )); //write to file
+										+ " -X -n -s 0")); //write to std out
 						droidSharkActivity.openFileStream();
 						startButton.setEnabled(false);
 						stopButton.setEnabled(true);
 					}
 				});
-		
-		//Stop button action, stop tcpdump and service monitoring.
+
+		// Stop button action, stop tcpdump and service monitoring.
 		((ImageButton) v.findViewById(R.id.stopButton))
 				.setOnClickListener(new OnClickListener()
 				{
 					public void onClick(View v)
-					{						
+					{
 						TCPDumpUtils.stopTCPDump();
 						droidSharkActivity.closeFileStream();
 						startButton.setEnabled(true);
 						stopButton.setEnabled(false);
 					}
 				});
-		
-		//Populate spinner with device list
+
+		// Populate spinner with device list
 		List<String> devices = TCPDumpUtils.getDeviceList(getActivity());
-		
+
 		Spinner deviceSpinner = (Spinner) v.findViewById(R.id.deviceSpinner);
 		deviceSpinner.setOnItemSelectedListener(this);
-		
+
 		ArrayAdapter<String> aa = new ArrayAdapter<String>(getActivity(),
-				android.R.layout.simple_spinner_item,
-				devices);
-		
-		aa.setDropDownViewResource(
-				android.R.layout.simple_spinner_dropdown_item);
+				android.R.layout.simple_spinner_item, devices);
+
+		aa.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		deviceSpinner.setAdapter(aa);
 
 		// SharedPreferences prefs = PreferenceManager
@@ -96,7 +100,7 @@ public class SnifferFragment extends SherlockFragment implements OnItemSelectedL
 	{
 		super.onResume();
 	}
-	
+
 	@Override
 	public void onItemSelected(AdapterView<?> parent, View v, int position,
 			long id)
@@ -108,7 +112,7 @@ public class SnifferFragment extends SherlockFragment implements OnItemSelectedL
 	@Override
 	public void onNothingSelected(AdapterView<?> parent)
 	{
-		
+
 	}
 
 }

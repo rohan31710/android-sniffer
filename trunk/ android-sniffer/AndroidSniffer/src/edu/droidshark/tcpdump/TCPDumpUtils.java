@@ -88,12 +88,25 @@ public class TCPDumpUtils
 			Process proc = Runtime.getRuntime().exec("ps");
 			BufferedReader br = new BufferedReader(new InputStreamReader(
 					proc.getInputStream()));
+			
+			//Finding the correct column for pid, this can vary with
+			//different versions of ps
 			String line;
+			int pidCol = 1, i = 0;
+			line = br.readLine();
+			String[] columns = line.split("\\s+");
+			for(String col : columns)
+			{
+				if(col.equalsIgnoreCase("PID"))
+					pidCol = i;
+				i++;
+			}
+			
 			// Parse process list to find tcpdump entry
 			while ((line = br.readLine()) != null)
 			{
 				if (line.contains("tcpdump") && line.contains("edu.droidshark")
-						&& !line.startsWith("sh"))
+						&& !line.contains("sh -c"))
 				{
 					if (SnifferConstants.DEBUG)
 						Log.d(TAG, "ps entry=" + line);
@@ -101,7 +114,7 @@ public class TCPDumpUtils
 					// Split the line by white space
 					String pid[] = line.split("\\s+");
 					// pid should be second string in line
-					return pid[1];
+					return pid[pidCol];
 				}
 			}
 			br.close();
@@ -121,21 +134,20 @@ public class TCPDumpUtils
 	 * @param opts
 	 *            The options to start tcpdump with
 	 */
-	public static void startTCPDump(Context context, String opts)
+	public static Process startTCPDump(Context context, String opts)
 	{
 		try
 		{
-			Runtime.getRuntime().exec(
+			return Runtime.getRuntime().exec(
 					new String[] {
 							"su",
 							"-c",
 							context.getFilesDir().getAbsolutePath()
-									+ "/tcpdump " + opts
-									+ context.getExternalFilesDir(null)
-									+ "/capture.pcap" });
+									+ "/tcpdump " + opts });
 		} catch (IOException e)
 		{
 			Log.e("tcpdump", "Error running tcpdump, msg=" + e.getMessage());
+			return null;
 		}
 	}
 
