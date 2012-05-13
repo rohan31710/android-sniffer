@@ -3,9 +3,7 @@
  */
 package edu.droidshark.android.services;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
@@ -13,11 +11,16 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
+
+import com.voytechs.jnetstream.codec.Decoder;
+import com.voytechs.jnetstream.codec.Packet;
+import com.voytechs.jnetstream.io.RawformatInputStream;
+
 import edu.droidshark.constants.SnifferConstants;
 import edu.droidshark.tcpdump.TCPDumpListener;
 
 /**
- * Service for running tcpdump
+ * Service for reading output of tcpdump
  * 
  * @author Sam SmithReams
  * 
@@ -25,7 +28,7 @@ import edu.droidshark.tcpdump.TCPDumpListener;
 public class TCPDumpService extends Service
 {
 	private TCPDumpBinder binder;
-	private BufferedInputStream pcapStream;
+//	private BufferedInputStream pcapStream;
 	private TCPDumpListener tListener;
 	private int count;
 	private final String TAG = "TCPDumpService";
@@ -77,20 +80,34 @@ public class TCPDumpService extends Service
 //					a way to read from a file stream without getting to the end. Another option might be to have tcpdump running twice, 
 //					one outputting to file stream and the other to stdout.
 					
-//					Read from the input stream of tcpdump
-					BufferedReader br = new BufferedReader(new InputStreamReader(
-							tProcess.getInputStream()));
-					String line;
-					if(SnifferConstants.DEBUG)
-						Log.d(TAG, "waiting for stdout");
-					while ((line = br.readLine()) != null)
+					//TODO: So this seems to work for reading the input stream. Still haven't resolved issue of writing to file.
+					//Will deal with later. A thought is to take the input stream and write it to file as we go in another thread.
+					
+					Decoder decoder = new Decoder(new RawformatInputStream(tProcess.getInputStream()));
+					Packet packet = null;
+					while(!stopScanner && (packet = decoder.nextPacket()) != null) 
 					{
-						if(SnifferConstants.DEBUG)
-							Log.d(TAG, "reading from stdout");
 						count++;
 						if(tListener != null)
-							tListener.packetReceived(count, line);
+							tListener.packetReceived(count, packet);
 					}
+					
+					decoder.close();
+					
+//					Read from the input stream of tcpdump
+//					BufferedReader br = new BufferedReader(new InputStreamReader(
+//							tProcess.getInputStream()));
+//					String line;
+//					if(SnifferConstants.DEBUG)
+//						Log.d(TAG, "waiting for stdout");
+//					while ((line = br.readLine()) != null)
+//					{
+//						if(SnifferConstants.DEBUG)
+//							Log.d(TAG, "reading from stdout");
+//						count++;
+//						if(tListener != null)
+//							tListener.packetReceived(count, line);
+//					}
 					
 //					Continually check the file stream
 //					pcapStream = new BufferedInputStream(new FileInputStream(getExternalFilesDir(null)

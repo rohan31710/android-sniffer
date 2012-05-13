@@ -27,6 +27,7 @@ import com.actionbarsherlock.app.SherlockFragmentActivity;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
+import com.voytechs.jnetstream.codec.Packet;
 
 import edu.droidshark.R;
 import edu.droidshark.android.services.TCPDumpBinder;
@@ -345,7 +346,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		 * @see edu.droidshark.tcpdump.TCPDumpListener#packetReceived(int)
 		 */
 		@Override
-		public void packetReceived(final int numPackets, String line)
+		public void packetReceived(final int numPackets, Packet packet)
 		{
 			DroidSharkActivity.this.runOnUiThread(new Runnable()
 			{

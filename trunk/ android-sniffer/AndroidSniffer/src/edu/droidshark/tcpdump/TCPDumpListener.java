@@ -3,6 +3,8 @@
  */
 package edu.droidshark.tcpdump;
 
+import com.voytechs.jnetstream.codec.Packet;
+
 /**
  * An interface for communicating with TCPDumpService
  * 
@@ -11,5 +13,5 @@ package edu.droidshark.tcpdump;
  */
 public interface TCPDumpListener
 {
-	void packetReceived(int numPackets, String line); //Will need a packet as well eventually
+	void packetReceived(int numPackets, Packet packet);
 }
