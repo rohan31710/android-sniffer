@@ -164,7 +164,7 @@ public class TCPDumpService extends Service
 						}
 					} catch (IOException e)
 					{
-						Log.e(TAG, e.getMessage());
+						Log.e(TAG, "Error reading tcpdump error stream, msg=" + e.getMessage());
 					}				
 				}
 				

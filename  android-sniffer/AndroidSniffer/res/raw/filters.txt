@@ -1,0 +1,11 @@
+None,
+TCP,tcp
+UDP,udp
+WWW,port 80
+ICMP,icmp
+SYN,'tcp[13] = 2'
+SYN-ACK,'tcp[13] = 18'
+ACK,'tcp[13] = 16'
+FIN,'tcp[13] & 1 = 1'
+RST,'tcp[13] & 4 = 4'
+PSH-ACK,'tcp[13] = 24'

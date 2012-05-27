@@ -131,19 +131,31 @@ public class TCPDumpUtils
 	 * 
 	 * @param context
 	 *            Application context for getting data directories
-	 * @param opts
+	 * @param tcpdumpOptions
 	 *            The options to start tcpdump with
 	 */
-	public static Process startTCPDump(Context context, String opts)
+	public static Process startTCPDump(Context context, TCPDumpOptions tcpdumpOptions)
 	{
+		if(SnifferConstants.DEBUG)
+			Log.d(TAG, "tcpdump options=" + tcpdumpOptions.toString());
+		
 		try
 		{
-			return Runtime.getRuntime().exec(
+			Process proc = Runtime.getRuntime().exec(
 					new String[] {
 							"su",
 							"-c",
 							context.getFilesDir().getAbsolutePath()
-									+ "/tcpdump " + opts });
+									+ "/tcpdump " + tcpdumpOptions.toString() });
+			BufferedReader br = new BufferedReader(new InputStreamReader(
+					proc.getErrorStream()));
+			// Check for errors during the kill process
+			String line = br.readLine();
+			br.close();
+			if(line.toLowerCase().contains("syntax error"))
+				return null;
+			else
+				return proc;
 		} catch (IOException e)
 		{
 			Log.e("tcpdump", "Error running tcpdump, msg=" + e.getMessage());
@@ -165,8 +177,11 @@ public class TCPDumpUtils
 			if (SnifferConstants.DEBUG)
 				Log.d(TAG, "Killing pid " + pid);
 			// Kill tcpdump
+			// NOTE: Took out the SIGTERM option on kill, reason for doing 
+			// this is to prevent packets from getting interrupted and possibly
+			// messing up the service, hopefully will kill it reliably still
 			Process proc = Runtime.getRuntime().exec(
-					new String[] { "su", "-c", "kill -9 " + pid });
+					new String[] { "su", "-c", "kill " + pid });
 			BufferedReader br = new BufferedReader(new InputStreamReader(
 					proc.getErrorStream()));
 			// Check for errors during the kill process

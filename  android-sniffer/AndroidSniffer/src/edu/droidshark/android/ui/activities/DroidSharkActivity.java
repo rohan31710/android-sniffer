@@ -6,6 +6,7 @@ import java.io.IOException;
 
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -35,6 +36,7 @@ import edu.droidshark.android.services.TCPDumpService;
 import edu.droidshark.android.ui.fragments.activity.PacketViewFragment;
 import edu.droidshark.android.ui.fragments.activity.SnifferFragment;
 import edu.droidshark.constants.SnifferConstants;
+import edu.droidshark.tcpdump.FilterDatabase;
 import edu.droidshark.tcpdump.TCPDumpListener;
 import edu.droidshark.tcpdump.TCPDumpUtils;
 
@@ -51,7 +53,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	public boolean tcpdumpIsRunning, isBound;
 	private TCPDumpService tService;
 	private Process tProcess;
-	
+	public FilterDatabase filterDB;
+
 	private ServiceConnection sConn = new ServiceConnection()
 	{
 		/*
@@ -139,9 +142,10 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		else if (currPane == SnifferConstants.PACKETVIEWPANE)
 			showPacketView();
 
-		//Start service onCreate(), so it is not destroyed when activity unbinds.
+		// Start service onCreate(), so it is not destroyed when activity
+		// unbinds.
 		startService(new Intent(this, TCPDumpService.class));
-		
+
 		mActionBar = getSupportActionBar();
 		mActionBar.setDisplayHomeAsUpEnabled(false);
 		mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
@@ -168,11 +172,14 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		else
 			mActionBar.addTab(mPVTab, false);
 
+		// Get database of filters
+		filterDB = new FilterDatabase(this);
+
 		// setup shared preferences
 		// prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		// prefs.registerOnSharedPreferenceChangeListener(this);
 	}
-	
+
 	@Override
 	protected void onStart()
 	{
@@ -187,7 +194,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	{
 		super.onResume();
 		tcpdumpIsRunning = TCPDumpUtils.isTCPDumpRunning();
-		
+
 		if (SnifferConstants.DEBUG)
 			Log.d(TAG, "tcpdumpRunning=" + tcpdumpIsRunning);
 
@@ -211,16 +218,18 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	public void onStop()
 	{
 		super.onStop();
-		//Unbind the service
+		// Unbind the service
 		if (isBound)
 		{
 			tService.settListener(null);
-			if(SnifferConstants.DEBUG)
+			if (SnifferConstants.DEBUG)
 				Log.d(TAG, "Unbinding TCPDumpService");
 			unbindService(sConn);
 		}
+
+		filterDB.close();
 	}
-	
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
@@ -263,12 +272,12 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	{
 		tService.openFileStream(tProcess);
 	}
-	
+
 	public void closeFileStream()
 	{
 		tService.closeFileStream();
 	}
-	
+
 	/**
 	 * Checks the wifi status
 	 */
@@ -316,7 +325,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		if (mPVTab != null)
 			mActionBar.setSelectedNavigationItem(mPVTab.getPosition());
 	}
-	
+
 	/**
 	 * @return the tProcess
 	 */
@@ -326,7 +335,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	}
 
 	/**
-	 * @param tProcess the tProcess to set
+	 * @param tProcess
+	 *            the tProcess to set
 	 */
 	public void settProcess(Process tProcess)
 	{
@@ -334,15 +344,52 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	}
 
 	/**
+	 * Adds a filter to the database
+	 * 
+	 * @param name
+	 *            Name of the filter
+	 * @param filter
+	 *            Filter string
+	 */
+	public void addFilter(String name, String filter)
+	{
+		ContentValues cv = new ContentValues();
+		cv.put("name", name);
+		cv.put("filter", filter);
+		filterDB.getWritableDatabase().insert("filters", "name", cv);
+		snifferFragment.addFilter(name, filter);
+	}
+
+	/**
+	 * Edits a filter to the database
+	 * 
+	 * @param name
+	 *            Name of the filter
+	 * @param filter
+	 *            Filter string
+	 */
+	public void editFilter(int id, String name, String filter)
+	{
+		ContentValues cv = new ContentValues();
+		cv.put("name", name);
+		cv.put("filter", filter);
+		filterDB.getWritableDatabase().update("filters", cv,
+				"_id=?", new String[] { String.valueOf(id) });
+		snifferFragment.updateFilter(id, name, filter);
+	}
+
+	/**
 	 * A class for doing something with callbacks from TCPDumpService
 	 * 
 	 * @author Sam SmithReams
-	 *
+	 * 
 	 */
 	public class TCPDumpCallbacks implements TCPDumpListener
 	{
 
-		/* (non-Javadoc)
+		/*
+		 * (non-Javadoc)
+		 * 
 		 * @see edu.droidshark.tcpdump.TCPDumpListener#packetReceived(int)
 		 */
 		@Override
@@ -354,11 +401,11 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 				@Override
 				public void run()
 				{
-					packetViewFragment.updatePacketCount(numPackets);					
+					packetViewFragment.updatePacketCount(numPackets);
 				}
-				
+
 			});
-		}	
+		}
 	}
 
 	public class ActionTabListener<T extends SherlockFragment> implements
