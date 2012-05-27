@@ -24,11 +24,83 @@
 
     </LinearLayout>
 
-    <Spinner
-        android:id="@+id/deviceSpinner"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_below="@+id/sniffer_ctrl_layout" />
+    <TableLayout
+    	android:layout_width="match_parent"
+    	android:layout_height="match_parent"
+    	android:layout_below="@id/sniffer_ctrl_layout" >
+    	<TableRow>
+    		<TextView
+    		    android:text="Interface"
+    		    android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    	    <Spinner
+		        android:id="@+id/deviceSpinner"
+		        android:layout_alignParentLeft="true" />
+    	</TableRow>
+    	<TableRow>
+    		<TextView
+    		    android:text="Filter"
+    		    android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    	    <Spinner
+		        android:id="@+id/filterSpinner"
+		        android:layout_alignParentLeft="true" />
+
+    	    <Button
+    	        android:id="@+id/editFilterButton"
+    	        style="?android:attr/buttonStyleSmall"
+    	        android:layout_width="wrap_content"
+    	        android:layout_height="wrap_content"
+    	        android:text="Edit" />
+
+    	</TableRow>
+    	<TableRow>
+    		<TextView
+    		    android:text="Verbose Output"
+    		    android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    	    <Spinner
+		        android:id="@+id/verboseSpinner"
+		        android:layout_alignParentLeft="true" />
+    	</TableRow>
+    	<TableRow>
+    		<TextView
+    		    android:text="Data Output"
+    		    android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    	    <Spinner
+		        android:id="@+id/dataSpinner"
+		        android:layout_alignParentLeft="true" />
+    	</TableRow>
+    	<TableRow>
+    		<TextView
+    		    android:text="Resolve Hosts"
+    		    android:textAppearance="?android:attr/textAppearanceMedium" />
+    	    <CheckBox
+		        android:id="@+id/hostsCheckBox"
+		        android:layout_alignParentLeft="true" />
+    	</TableRow>
+    	<TableRow>
+    		<TextView
+    		    android:text="Print Timestamps"
+    		    android:textAppearance="?android:attr/textAppearanceMedium" />
+    	    <CheckBox
+		        android:id="@+id/timestampCheckBox"
+		        android:layout_alignParentLeft="true" />
+    	</TableRow>
+    	<TableRow>
+    		<TextView
+    		    android:text="Packet Byte Limit"
+    		    android:textAppearance="?android:attr/textAppearanceMedium" 
+    		    android:paddingRight="10dip"/>
+    	    <EditText
+    	        android:id="@+id/packetLenLimTextBox"
+    	        android:layout_width="30dip"
+    	        android:ems="10"
+    	        android:inputType="number" >
+    	    </EditText>
+
+    	</TableRow>
+    </TableLayout>
 
 </RelativeLayout>

@@ -6,5 +6,16 @@
     <string name="settings">Settings</string>
     <string name="sniffer">Sniffer</string>
     <string name="packet_view">PacketView</string>
+    <string-array name="verbose_mode">
+        <item>Disabled</item>
+        <item>Level 1</item>
+        <item>Level 2</item>
+        <item>Level 3</item>
+    </string-array>
+    <string-array name="data_mode">
+        <item>Disabled</item>
+        <item>Hex</item>
+        <item>ASCII</item>
+    </string-array>
 
 </resources>
