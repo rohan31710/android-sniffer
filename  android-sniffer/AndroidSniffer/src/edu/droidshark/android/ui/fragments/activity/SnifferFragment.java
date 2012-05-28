@@ -4,8 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Color;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -20,9 +24,8 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.Spinner;
-import android.widget.Toast;
+import android.widget.TextView;
 
 import com.actionbarsherlock.app.SherlockFragment;
 
@@ -39,7 +42,7 @@ public class SnifferFragment extends SherlockFragment implements
 	protected final String LOG_TAG = getClass().getSimpleName();
 	protected DroidSharkActivity dsActivity;
 	private static final String TAG = "SnifferFragment";
-	private ImageButton startButton, stopButton;
+	private TextView runningTextView, wifiTextView, networkTextView;
 	private Spinner deviceSpinner, filterSpinner;
 	private List<TCPDumpFilter> filters;
 	private ArrayAdapter<TCPDumpFilter> filterAdapter;
@@ -67,55 +70,8 @@ public class SnifferFragment extends SherlockFragment implements
 		View v = inflater.inflate(R.layout.sniffer_layout, container, false);
 
 		// Buttons
-		startButton = (ImageButton) v.findViewById(R.id.startButton);
-		stopButton = (ImageButton) v.findViewById(R.id.stopButton);
 		Button editFilterButton = (Button) v
 				.findViewById(R.id.editFilterButton);
-
-		// Start button action, start tcpdump and service monitoring.
-		startButton.setOnClickListener(new OnClickListener()
-		{
-			public void onClick(View v)
-			{
-				try
-				{
-					dsActivity.closeIME(packetLenLimEditText.getWindowToken());
-					tcpdumpOptions.setPacketLenLim(Integer
-							.valueOf(packetLenLimEditText.getText().toString()));
-					Process proc = TCPDumpUtils.startTCPDump(getActivity(),
-							tcpdumpOptions);
-					if (proc == null)
-						Toast.makeText(dsActivity,
-								"Syntax error occurred, check your filter",
-								Toast.LENGTH_SHORT).show();
-					else
-					{
-						dsActivity.settProcess(proc);
-						dsActivity.openFileStream();
-						startButton.setEnabled(false);
-						stopButton.setEnabled(true);
-					}
-				} catch (NumberFormatException e)
-				{
-					Toast.makeText(dsActivity, "Invalid Packet Length Limit",
-							Toast.LENGTH_SHORT).show();
-				}
-			}
-		});
-
-		// Stop button action, stop tcpdump and service monitoring.
-		stopButton.setOnClickListener(new OnClickListener()
-		{
-			public void onClick(View v)
-			{
-				dsActivity.closeIME(packetLenLimEditText.getWindowToken());
-				TCPDumpUtils.stopTCPDump();
-				dsActivity.closeFileStream();
-				startButton.setEnabled(true);
-				stopButton.setEnabled(false);
-			}
-		});
-
 		editFilterButton.setOnClickListener(new OnClickListener()
 		{
 			public void onClick(View v)
@@ -124,6 +80,15 @@ public class SnifferFragment extends SherlockFragment implements
 				new FilterEditFragment(filter)
 						.show(dsActivity.getSupportFragmentManager(),
 								"editFilter");
+			}
+		});
+		
+		Button wifiButton = (Button) v.findViewById(R.id.wifiButton);
+		wifiButton.setOnClickListener(new OnClickListener()
+		{
+			public void onClick(View v)
+			{
+				startActivity(new Intent(WifiManager.ACTION_PICK_WIFI_NETWORK));
 			}
 		});
 
@@ -176,6 +141,10 @@ public class SnifferFragment extends SherlockFragment implements
 		hostsCheckBox.setOnCheckedChangeListener(this);
 		timestampCheckBox.setOnCheckedChangeListener(this);
 
+		//TextViews
+		runningTextView = (TextView) v.findViewById(R.id.runningTextView);
+		wifiTextView = (TextView) v.findViewById(R.id.wifiTextView);
+		networkTextView = (TextView) v.findViewById(R.id.networkTextView);
 		packetLenLimEditText = (EditText) v
 				.findViewById(R.id.packetLenLimTextBox);
 
@@ -212,6 +181,45 @@ public class SnifferFragment extends SherlockFragment implements
 
 		aa.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		deviceSpinner.setAdapter(aa);
+		
+		//Check wifi status
+		WifiManager wifiMgr = (WifiManager) dsActivity.getSystemService(Context.WIFI_SERVICE);
+		if(wifiMgr.isWifiEnabled())
+		{
+			wifiTextView.setText("WiFi enabled");
+			String network = wifiMgr.getConnectionInfo().getSSID();
+			if(network != null)
+				networkTextView.setText("Network SSID: " + network);
+			else
+				networkTextView.setText("Not Connected");
+		}
+		else
+		{
+			wifiTextView.setText("WiFi disabled");
+			networkTextView.setText("Not Connected");
+		}
+		
+		setRunningText(dsActivity.tcpdumpIsRunning);
+	}
+	
+	/**
+	 * Check sniffer status and update display string
+	 * 
+	 * @param isRunning
+	 * 			Whether tcpdump is running
+	 */
+	public void setRunningText(boolean isRunning)
+	{
+		if(isRunning)
+		{
+			runningTextView.setText("Sniffer is running");
+			runningTextView.setTextColor(Color.GREEN);
+		}
+		else
+		{
+			runningTextView.setText("Sniffer is stopped");
+			runningTextView.setTextColor(Color.RED);
+		}
 	}
 
 	@Override
@@ -334,5 +342,26 @@ public class SnifferFragment extends SherlockFragment implements
 		editFilter.setName(name);
 		editFilter.setFilter(filter);
 		filterAdapter.notifyDataSetChanged();
+	}
+	
+	
+	/**
+	 * Method to get the EditText field, mostly for closing soft keyboard
+	 * 
+	 * @return
+	 * 			The EditText component
+	 */
+	public EditText getPacketLenLimEditText()
+	{
+		return packetLenLimEditText;
+	}
+	
+	/**
+	 * @return
+	 * 			The TCPDumpOptions object
+	 */
+	public TCPDumpOptions getTCPDumpOptions()
+	{
+		return tcpdumpOptions;
 	}
 }
