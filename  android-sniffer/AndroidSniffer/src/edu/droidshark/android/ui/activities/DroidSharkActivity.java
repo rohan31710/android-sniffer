@@ -13,6 +13,8 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
@@ -32,14 +34,21 @@ import com.actionbarsherlock.app.SherlockFragmentActivity;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.MenuInflater;
 import com.actionbarsherlock.view.MenuItem;
+import com.dropbox.client2.DropboxAPI;
+import com.dropbox.client2.android.AndroidAuthSession;
+import com.dropbox.client2.session.AccessTokenPair;
+import com.dropbox.client2.session.AppKeyPair;
+import com.dropbox.client2.session.TokenPair;
 import com.voytechs.jnetstream.codec.Packet;
 
 import edu.droidshark.R;
+import edu.droidshark.android.dropbox.UploadCaptureFile;
 import edu.droidshark.android.services.TCPDumpBinder;
 import edu.droidshark.android.services.TCPDumpService;
 import edu.droidshark.android.ui.fragments.activity.PacketViewFragment;
 import edu.droidshark.android.ui.fragments.activity.SaveFragment;
 import edu.droidshark.android.ui.fragments.activity.SnifferFragment;
+import edu.droidshark.android.ui.fragments.activity.UploadFragment;
 import edu.droidshark.constants.SnifferConstants;
 import edu.droidshark.tcpdump.FilterDatabase;
 import edu.droidshark.tcpdump.TCPDumpListener;
@@ -56,10 +65,11 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	private FrameLayout firstPane, secondPane;
 	private ActionBar.Tab mSnifTab, mPVTab;
 	private ActionBar mActionBar;
-	public boolean tcpdumpIsRunning, isBound;
+	public boolean tcpdumpIsRunning, isBound, dropboxLoggedIn;
 	private TCPDumpService tService;
 	private Process tProcess;
 	public FilterDatabase filterDB;
+	private DropboxAPI<AndroidAuthSession> dropboxAPI;
 
 	private ServiceConnection sConn = new ServiceConnection()
 	{
@@ -114,6 +124,11 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		}
 
 		setContentView(R.layout.main);
+
+		// We create a new AuthSession so that we can use the Dropbox API.
+		AndroidAuthSession session = buildSession();
+		dropboxAPI = new DropboxAPI<AndroidAuthSession>(session);
+		dropboxLoggedIn = dropboxAPI.getSession().isLinked();
 
 		firstPane = (FrameLayout) findViewById(R.id.first_pane);
 		secondPane = (FrameLayout) findViewById(R.id.second_pane);
@@ -199,6 +214,33 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 
 		if (SnifferConstants.DEBUG)
 			Log.d(TAG, "tcpdumpRunning=" + tcpdumpIsRunning);
+
+		AndroidAuthSession session = dropboxAPI.getSession();
+
+		// Complete dropbox authentication
+		if (session.authenticationSuccessful())
+		{
+			try
+			{
+				// Mandatory call to complete the auth
+				session.finishAuthentication();
+
+				// Store it locally in our app for later use
+				TokenPair tokens = session.getAccessTokenPair();
+				storeKeys(tokens.key, tokens.secret);
+				dropboxLoggedIn = true;
+				Toast.makeText(this, "Dropbox login successful",
+						Toast.LENGTH_SHORT).show();
+			} catch (IllegalStateException e)
+			{
+				Toast.makeText(
+						this,
+						"Couldn't authenticate with Dropbox:"
+								+ e.getLocalizedMessage(), Toast.LENGTH_SHORT)
+						.show();
+				Log.i(TAG, "Error authenticating", e);
+			}
+		}
 	}
 
 	@Override
@@ -263,11 +305,81 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 			if (tcpdumpIsRunning)
 				stopSniffer();
 			else
-				Toast.makeText(this, "Sniffer not running", Toast.LENGTH_SHORT).show();
+				Toast.makeText(this, "Sniffer not running", Toast.LENGTH_SHORT)
+						.show();
 			return true;
+		case R.id.upload:
+			if (dropboxLoggedIn)
+				openUploadDialog();
+			else
+				dropboxAPI.getSession().startAuthentication(this);
 		default:
 			return false;
 		}
+	}
+
+	/**
+	 * Creates a dropbox session
+	 * 
+	 * @return The authorized session
+	 */
+	private AndroidAuthSession buildSession()
+	{
+		AppKeyPair appKeyPair = new AppKeyPair(
+				SnifferConstants.DROPBOX_APP_KEY,
+				SnifferConstants.DROPBOX_APP_SECRET);
+		AndroidAuthSession session;
+
+		String[] stored = getKeys();
+		if (stored != null)
+		{
+			AccessTokenPair accessToken = new AccessTokenPair(stored[0],
+					stored[1]);
+			session = new AndroidAuthSession(appKeyPair,
+					SnifferConstants.ACCESS_TYPE, accessToken);
+		} else
+		{
+			session = new AndroidAuthSession(appKeyPair,
+					SnifferConstants.ACCESS_TYPE);
+		}
+
+		return session;
+	}
+
+	/**
+	 * Get the access keys returned from DropBox Trusted Authenticator
+	 * 
+	 * @return Array of [access_key, access_secret], or null if none stored
+	 */
+	private String[] getKeys()
+	{
+		SharedPreferences prefs = getSharedPreferences("dropbox", 0);
+		String key = prefs.getString(SnifferConstants.DROPBOX_KEY_NAME, null);
+		String secret = prefs.getString(SnifferConstants.DROPBOX_SECRET_NAME,
+				null);
+		if (key != null && secret != null)
+		{
+			String[] ret = new String[2];
+			ret[0] = key;
+			ret[1] = secret;
+			return ret;
+		} else
+		{
+			return null;
+		}
+	}
+
+	/**
+	 * Stores the access keys returned from DropBox Trusted Authenticator
+	 */
+	private void storeKeys(String key, String secret)
+	{
+		// Save the access key for later
+		SharedPreferences prefs = getSharedPreferences("dropbox", 0);
+		Editor edit = prefs.edit();
+		edit.putString(SnifferConstants.DROPBOX_KEY_NAME, key);
+		edit.putString(SnifferConstants.DROPBOX_SECRET_NAME, secret);
+		edit.commit();
 	}
 
 	/**
@@ -280,7 +392,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 					.getPath() + "/Capture").show(getSupportFragmentManager(),
 					"save");
 		else
-			Toast.makeText(this, "No capture file found", Toast.LENGTH_SHORT).show();
+			Toast.makeText(this, "No capture file found", Toast.LENGTH_SHORT)
+					.show();
 	}
 
 	/**
@@ -307,6 +420,32 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 			Log.e(TAG, "Error writing file, msg=" + e.getMessage());
 		}
 
+	}
+
+	/**
+	 * Opens upload prompt
+	 */
+	private void openUploadDialog()
+	{
+		File path = Environment.getExternalStorageDirectory();
+		File capDir = new File(path.getPath() + "/Capture");
+		if (capDir.listFiles() != null)
+			new UploadFragment(capDir)
+					.show(getSupportFragmentManager(), "upload");
+		else
+			Toast.makeText(this, "No files available to upload",
+					Toast.LENGTH_SHORT).show();
+	}
+
+	/**
+	 * Uploads the given file via dropbox
+	 * 
+	 * @param file
+	 *            The file to be uploaded
+	 */
+	public void uploadCaptureFile(File file)
+	{
+		new UploadCaptureFile(this, dropboxAPI, file).execute();
 	}
 
 	/**

@@ -111,7 +111,6 @@ public class SnifferFragment extends SherlockFragment implements
 		{
 			filters.add(new TCPDumpFilter(cursor.getInt(0),
 					cursor.getString(1), cursor.getString(2)));
-			Log.d(TAG, "Adding filter name=" + cursor.getString(0));
 		} while (cursor.moveToNext());
 		cursor.close();
 		filterAdapter = new ArrayAdapter<TCPDumpFilter>(dsActivity,
