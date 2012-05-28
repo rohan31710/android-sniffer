@@ -4,6 +4,7 @@
     <string name="app_name">DroidShark</string>
     <string name="exit">Exit</string>
     <string name="save">Save</string>
+    <string name="upload">Dropbox Upload</string>
     <string name="sniffer">Sniffer</string>
     <string name="packet_view">PacketView</string>
     <string-array name="verbose_mode">
