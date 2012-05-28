@@ -1,8 +1,11 @@
 package edu.droidshark.android.ui.activities;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+
+import org.apache.commons.io.FileUtils;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -10,15 +13,16 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.net.wifi.WifiManager;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.IBinder;
 import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import com.actionbarsherlock.app.ActionBar;
 import com.actionbarsherlock.app.ActionBar.Tab;
@@ -34,10 +38,12 @@ import edu.droidshark.R;
 import edu.droidshark.android.services.TCPDumpBinder;
 import edu.droidshark.android.services.TCPDumpService;
 import edu.droidshark.android.ui.fragments.activity.PacketViewFragment;
+import edu.droidshark.android.ui.fragments.activity.SaveFragment;
 import edu.droidshark.android.ui.fragments.activity.SnifferFragment;
 import edu.droidshark.constants.SnifferConstants;
 import edu.droidshark.tcpdump.FilterDatabase;
 import edu.droidshark.tcpdump.TCPDumpListener;
+import edu.droidshark.tcpdump.TCPDumpOptions;
 import edu.droidshark.tcpdump.TCPDumpUtils;
 
 public class DroidSharkActivity extends SherlockFragmentActivity
@@ -174,10 +180,6 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 
 		// Get database of filters
 		filterDB = new FilterDatabase(this);
-
-		// setup shared preferences
-		// prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		// prefs.registerOnSharedPreferenceChangeListener(this);
 	}
 
 	@Override
@@ -197,21 +199,6 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 
 		if (SnifferConstants.DEBUG)
 			Log.d(TAG, "tcpdumpRunning=" + tcpdumpIsRunning);
-
-		// Disable/enable start stop button as appropriate
-		if (tcpdumpIsRunning)
-		{
-			snifferFragment.getView().findViewById(R.id.startButton)
-					.setEnabled(false);
-			snifferFragment.getView().findViewById(R.id.stopButton)
-					.setEnabled(true);
-		} else
-		{
-			snifferFragment.getView().findViewById(R.id.startButton)
-					.setEnabled(true);
-			snifferFragment.getView().findViewById(R.id.stopButton)
-					.setEnabled(false);
-		}
 	}
 
 	@Override
@@ -258,39 +245,116 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 			stopService(new Intent(this, TCPDumpService.class));
 			finish();
 			return true;
-
-			// case R.id.settings:
-			// Intent prefsActivity = new Intent(this, MainPreferences.class);
-			// startActivity(prefsActivity);
-			// return true;
+		case R.id.save:
+			if (tcpdumpIsRunning)
+				Toast.makeText(this, "Sniffer must be stopped",
+						Toast.LENGTH_SHORT).show();
+			else
+				openSaveDialog();
+			return true;
+		case R.id.start:
+			if (tcpdumpIsRunning)
+				Toast.makeText(this, "Sniffer already running",
+						Toast.LENGTH_SHORT).show();
+			else
+				startSniffer();
+			return true;
+		case R.id.stop:
+			if (tcpdumpIsRunning)
+				stopSniffer();
+			else
+				Toast.makeText(this, "Sniffer not running", Toast.LENGTH_SHORT).show();
+			return true;
+		default:
+			return false;
 		}
-
-		return super.onOptionsItemSelected(item);
-	}
-
-	public void openFileStream()
-	{
-		tService.openFileStream(tProcess);
-	}
-
-	public void closeFileStream()
-	{
-		tService.closeFileStream();
 	}
 
 	/**
-	 * Checks the wifi status
+	 * Opens save prompt
 	 */
-	public void checkWifi()
+	private void openSaveDialog()
 	{
-		WifiManager wifiMgr = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-		if (!wifiMgr.isWifiEnabled() && !("sdk".equals(Build.MODEL)))
+		if (new File(getExternalFilesDir(null) + "/capture.pcap").exists())
+			new SaveFragment(Environment.getExternalStorageDirectory()
+					.getPath() + "/Capture").show(getSupportFragmentManager(),
+					"save");
+		else
+			Toast.makeText(this, "No capture file found", Toast.LENGTH_SHORT).show();
+	}
+
+	/**
+	 * Saves the last capture file with specified name
+	 * 
+	 * @param filename
+	 *            The filename to be saved
+	 */
+	public void saveCaptureFile(String filename)
+	{
+		File path = Environment.getExternalStorageDirectory();
+		File capDir = new File(path.getPath() + "/Capture");
+		File saveFile = new File(capDir.getPath() + "/" + filename);
+
+		try
 		{
-			// DialogFragment df = new WifiDisabledAlertFragment();
-			// if (getSupportFragmentManager().findFragmentByTag("wifialert") ==
-			// null)
-			// df.show(getSupportFragmentManager(), "wifialert");
+			// Make sure the Pictures directory exists.
+			capDir.mkdirs();
+			File captureFile = new File(getExternalFilesDir(null)
+					+ "/capture.pcap");
+			FileUtils.copyFile(captureFile, saveFile);
+		} catch (IOException e)
+		{
+			Log.e(TAG, "Error writing file, msg=" + e.getMessage());
 		}
+
+	}
+
+	/**
+	 * Starts the sniffer
+	 */
+	private void startSniffer()
+	{
+		try
+		{
+			tcpdumpIsRunning = true;
+			EditText packetLenLimEditText = snifferFragment
+					.getPacketLenLimEditText();
+			TCPDumpOptions tcpdumpOptions = snifferFragment.getTCPDumpOptions();
+			closeIME(packetLenLimEditText.getWindowToken());
+			tcpdumpOptions.setPacketLenLim(Integer.valueOf(packetLenLimEditText
+					.getText().toString()));
+			Process proc = TCPDumpUtils.startTCPDump(this, tcpdumpOptions);
+			if (proc == null)
+			{
+				Toast.makeText(this,
+						"Syntax error occurred, check your filter",
+						Toast.LENGTH_SHORT).show();
+				tcpdumpIsRunning = false;
+			} else
+			{
+				tProcess = proc;
+				tService.openFileStream(tProcess);
+			}
+		} catch (NumberFormatException e)
+		{
+			Toast.makeText(this, "Invalid Packet Length Limit",
+					Toast.LENGTH_SHORT).show();
+			tcpdumpIsRunning = false;
+		}
+
+		snifferFragment.setRunningText(tcpdumpIsRunning);
+	}
+
+	/**
+	 * Stops the sniffer
+	 */
+	private void stopSniffer()
+	{
+		closeIME(snifferFragment.getPacketLenLimEditText().getWindowToken());
+		TCPDumpUtils.stopTCPDump();
+		tService.closeFileStream();
+		tcpdumpIsRunning = false;
+		snifferFragment.setRunningText(tcpdumpIsRunning);
 	}
 
 	/**
@@ -327,23 +391,6 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	}
 
 	/**
-	 * @return the tProcess
-	 */
-	public Process gettProcess()
-	{
-		return tProcess;
-	}
-
-	/**
-	 * @param tProcess
-	 *            the tProcess to set
-	 */
-	public void settProcess(Process tProcess)
-	{
-		this.tProcess = tProcess;
-	}
-
-	/**
 	 * Adds a filter to the database
 	 * 
 	 * @param name
@@ -373,8 +420,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		ContentValues cv = new ContentValues();
 		cv.put("name", name);
 		cv.put("filter", filter);
-		filterDB.getWritableDatabase().update("filters", cv,
-				"_id=?", new String[] { String.valueOf(id) });
+		filterDB.getWritableDatabase().update("filters", cv, "_id=?",
+				new String[] { String.valueOf(id) });
 		snifferFragment.updateFilter(id, name, filter);
 	}
 
