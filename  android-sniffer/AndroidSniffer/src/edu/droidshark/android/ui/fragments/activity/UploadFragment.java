@@ -36,6 +36,8 @@ public class UploadFragment extends SherlockDialogFragment
 	@Override
 	public Dialog onCreateDialog(Bundle savedInstanceState)
 	{
+		setRetainInstance(true);
+		
 		final File[] files = path.listFiles();
 
 		final CharSequence[] items = new CharSequence[files.length];
@@ -55,5 +57,13 @@ public class UploadFragment extends SherlockDialogFragment
 		});
 
 		return builder.create();
+	}
+	
+	@Override
+	public void onDestroyView() 
+	{
+	  if (getDialog() != null && getRetainInstance())
+	    getDialog().setOnDismissListener(null);
+	  super.onDestroyView();
 	}
 }

@@ -38,6 +38,8 @@ public class FilterEditFragment extends SherlockDialogFragment
 	@Override
 	public Dialog onCreateDialog(Bundle savedInstanceState)
 	{
+		setRetainInstance(true);
+		
 		Dialog dialog = new Dialog(this.getActivity());
 
 		dialog.setContentView(R.layout.filter_edit_layout);
@@ -91,5 +93,12 @@ public class FilterEditFragment extends SherlockDialogFragment
 
 		return dialog;
 	}
-
+	
+	@Override
+	public void onDestroyView() 
+	{
+	  if (getDialog() != null && getRetainInstance())
+	    getDialog().setOnDismissListener(null);
+	  super.onDestroyView();
+	}
 }
