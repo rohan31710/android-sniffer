@@ -3,6 +3,7 @@ package edu.droidshark.android.ui.fragments.activity;
 import java.util.ArrayList;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,7 +29,7 @@ public class PacketViewFragment extends SherlockFragment
 	private ListView packetList;
 	private ArrayAdapter<String> adapter;
 	private ArrayList<String> packets = new ArrayList<String>();
-	private ArrayList<Packet> p;
+	private ArrayList<Packet> capturedPackets;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState)
@@ -37,21 +38,14 @@ public class PacketViewFragment extends SherlockFragment
 		
 		adapter = new ArrayAdapter<String>(this.getActivity(), R.layout.packet_view_list, packets);
 		
-		p = ((DroidSharkActivity) getActivity()).getCapturedPackets();
-	}
-	
-	@Override
-	public void onDestroy()
-	{
-		super.onDestroy();
-		
-		((DroidSharkActivity) getActivity()).setCapturedPackets(p);
+		capturedPackets = new ArrayList<Packet>();
 	}
 	
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState)
 	{
 		super.onActivityCreated(savedInstanceState);
+		
 		if (packetList != null)
 			packetList.setAdapter(adapter);
 	}
@@ -74,7 +68,7 @@ public class PacketViewFragment extends SherlockFragment
 			{
 				if (parent.getAdapter() instanceof ArrayAdapter)
 				{
-					PacketListLongClickDialogFragment df = new PacketListLongClickDialogFragment(p.get(position));
+					PacketListLongClickDialogFragment df = new PacketListLongClickDialogFragment(capturedPackets.get(position));
 					df.show(getFragmentManager(), "long click");
 				}
 				
@@ -88,7 +82,7 @@ public class PacketViewFragment extends SherlockFragment
 	
 	public void updatePacketCount(int numPackets, Packet packet)
 	{
-		p.add(packet);
+		capturedPackets.add(packet);
 		
 		adapter.add(packet.getSummary());
 	}
