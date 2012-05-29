@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import org.apache.commons.io.FileUtils;
 
@@ -70,6 +71,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	private Process tProcess;
 	public FilterDatabase filterDB;
 	private DropboxAPI<AndroidAuthSession> dropboxAPI;
+	private ArrayList<Packet> capturedPackets;
 
 	private ServiceConnection sConn = new ServiceConnection()
 	{
@@ -107,6 +109,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
+		capturedPackets = new ArrayList<Packet>();
 
 		// Check to see if tcpdump is present
 		try
@@ -316,6 +319,26 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		default:
 			return false;
 		}
+	}
+	
+	/**
+	 * Used to access the array of captured packets
+	 * 
+	 * @return The ArrayList of captured packets
+	 */
+	public ArrayList<Packet> getCapturedPackets()
+	{
+		return capturedPackets;
+	}
+	
+	/**
+	 * Used to set the array of captured packets
+	 * 
+	 * @param The ArrayList the captured packets will eb set to
+	 */
+	public void setCapturedPackets(ArrayList<Packet> p)
+	{
+		capturedPackets = p;
 	}
 
 	/**
@@ -579,7 +602,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		 * @see edu.droidshark.tcpdump.TCPDumpListener#packetReceived(int)
 		 */
 		@Override
-		public void packetReceived(final int numPackets, Packet packet)
+		public void packetReceived(final int numPackets, final Packet packet)
 		{
 			DroidSharkActivity.this.runOnUiThread(new Runnable()
 			{
@@ -587,7 +610,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 				@Override
 				public void run()
 				{
-					packetViewFragment.updatePacketCount(numPackets);
+					packetViewFragment.updatePacketCount(numPackets, packet);
 				}
 
 			});
