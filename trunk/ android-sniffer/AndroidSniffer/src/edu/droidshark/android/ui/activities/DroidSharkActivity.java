@@ -610,7 +610,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 				@Override
 				public void run()
 				{
-					packetViewFragment.updatePacketCount(numPackets, packet);
+					if(packetViewFragment != null)
+						packetViewFragment.updatePacketCount(numPackets, packet);
 				}
 
 			});
