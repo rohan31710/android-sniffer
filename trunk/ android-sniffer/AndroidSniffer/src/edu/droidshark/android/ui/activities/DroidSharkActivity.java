@@ -16,6 +16,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
@@ -271,7 +272,13 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		// that the action bar helpers have a chance to handle this event.
 		return super.onCreateOptionsMenu(menu);
 	}
-
+	
+	@Override
+	public void onConfigurationChanged(Configuration newConfig)
+	{
+	  super.onConfigurationChanged(newConfig);
+	}
+	
 	@Override
 	public void onSaveInstanceState(Bundle outState)
 	{
@@ -319,26 +326,6 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		default:
 			return false;
 		}
-	}
-	
-	/**
-	 * Used to access the array of captured packets
-	 * 
-	 * @return The ArrayList of captured packets
-	 */
-	public ArrayList<Packet> getCapturedPackets()
-	{
-		return capturedPackets;
-	}
-	
-	/**
-	 * Used to set the array of captured packets
-	 * 
-	 * @param The ArrayList the captured packets will eb set to
-	 */
-	public void setCapturedPackets(ArrayList<Packet> p)
-	{
-		capturedPackets = p;
 	}
 
 	/**
