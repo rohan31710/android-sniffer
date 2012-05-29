@@ -17,6 +17,12 @@ import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.SimpleExpandableListAdapter;
 
+/**
+ * Class for displaying details of captured packet
+ * 
+ * @author Jayme Gibson
+ *
+ */
 public class PacketListLongClickDialogFragment extends DialogFragment
 {
 	private ExpandableListView ExpListView;
@@ -36,6 +42,8 @@ public class PacketListLongClickDialogFragment extends DialogFragment
 	public Dialog onCreateDialog(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
+		
+		setRetainInstance(true);
 		
 		Dialog dialog = new Dialog(getActivity());
 		dialog.setContentView(R.layout.packet_dialog_layout);
@@ -83,5 +91,13 @@ public class PacketListLongClickDialogFragment extends DialogFragment
         ExpListView.setAdapter(adapter);
         
 		return dialog;
+	}
+	
+	@Override
+	public void onDestroyView() 
+	{
+	  if (getDialog() != null && getRetainInstance())
+	    getDialog().setOnDismissListener(null);
+	  super.onDestroyView();
 	}
 }

@@ -16,6 +16,7 @@ import com.voytechs.jnetstream.codec.Decoder;
 import com.voytechs.jnetstream.codec.Packet;
 import com.voytechs.jnetstream.io.RawformatInputStream;
 
+import edu.droidshark.constants.SnifferConstants;
 import edu.droidshark.tcpdump.TCPDumpListener;
 
 /**
@@ -82,7 +83,8 @@ public class TCPDumpService extends Service
 						if(tListener != null)
 							tListener.packetReceived(count, packet);
 					}
-					
+					if(SnifferConstants.DEBUG)
+						Log.d(TAG, "Packet reading loop ended");
 					decoder.close();
 				}
 				catch(Exception e)
@@ -90,7 +92,6 @@ public class TCPDumpService extends Service
 					Log.e(TAG, "Error reading pcap file, msg=" + e.getMessage());
 				}
 			}
-
 		});
 
 		scannerThread.start();

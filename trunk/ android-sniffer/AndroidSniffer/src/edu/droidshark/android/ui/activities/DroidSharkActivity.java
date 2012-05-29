@@ -59,7 +59,6 @@ import edu.droidshark.tcpdump.TCPDumpUtils;
 
 public class DroidSharkActivity extends SherlockFragmentActivity
 {
-	// public static final int EXIT_MENU_ID = 0x8;
 	private static final String TAG = "DroidSharkActivity";
 	private int currPane = SnifferConstants.SNIFFERPANE;
 	private SnifferFragment snifferFragment;
@@ -519,6 +518,9 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		mgr.hideSoftInputFromWindow(windowToken, 0);
 	}
 
+	/**
+	 * Shows the SnifferFragment
+	 */
 	public void showSniffer()
 	{
 		firstPane.setVisibility(View.VISIBLE);
@@ -529,6 +531,9 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 			mActionBar.setSelectedNavigationItem(mSnifTab.getPosition());
 	}
 
+	/**
+	 * Shows the PacketViewFragment
+	 */
 	public void showPacketView()
 	{
 		firstPane.setVisibility(View.GONE);
