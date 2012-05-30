@@ -47,6 +47,7 @@ import edu.droidshark.R;
 import edu.droidshark.android.dropbox.UploadCaptureFile;
 import edu.droidshark.android.services.TCPDumpBinder;
 import edu.droidshark.android.services.TCPDumpService;
+import edu.droidshark.android.ui.fragments.activity.AboutFragment;
 import edu.droidshark.android.ui.fragments.activity.PacketViewFragment;
 import edu.droidshark.android.ui.fragments.activity.SaveFragment;
 import edu.droidshark.android.ui.fragments.activity.SnifferFragment;
@@ -322,9 +323,22 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 				openUploadDialog();
 			else
 				dropboxAPI.getSession().startAuthentication(this);
+			return true;
+		case R.id.about:
+			openAboutDialog();
+			return true;
 		default:
 			return false;
 		}
+	}
+
+	/**
+	 * Opens the about dialog
+	 */
+	private void openAboutDialog()
+	{
+		new AboutFragment().show(getSupportFragmentManager(),
+				"about");	
 	}
 
 	/**

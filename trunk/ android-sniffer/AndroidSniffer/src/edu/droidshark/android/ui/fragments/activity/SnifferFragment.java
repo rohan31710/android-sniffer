@@ -1,6 +1,10 @@
 package edu.droidshark.android.ui.fragments.activity;
 
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 
 import android.app.Activity;
@@ -42,7 +46,8 @@ public class SnifferFragment extends SherlockFragment implements
 	protected final String LOG_TAG = getClass().getSimpleName();
 	protected DroidSharkActivity dsActivity;
 	private static final String TAG = "SnifferFragment";
-	private TextView runningTextView, wifiTextView, networkTextView;
+	private TextView runningTextView, wifiTextView, networkTextView,
+			addressTextView;
 	private Spinner deviceSpinner, filterSpinner;
 	private List<TCPDumpFilter> filters;
 	private ArrayAdapter<TCPDumpFilter> filterAdapter;
@@ -76,13 +81,13 @@ public class SnifferFragment extends SherlockFragment implements
 		{
 			public void onClick(View v)
 			{
-				TCPDumpFilter filter = (TCPDumpFilter) filterSpinner.getSelectedItem();
-				new FilterEditFragment(filter)
-						.show(dsActivity.getSupportFragmentManager(),
-								"editFilter");
+				TCPDumpFilter filter = (TCPDumpFilter) filterSpinner
+						.getSelectedItem();
+				new FilterEditFragment(filter).show(
+						dsActivity.getSupportFragmentManager(), "editFilter");
 			}
 		});
-		
+
 		Button wifiButton = (Button) v.findViewById(R.id.wifiButton);
 		wifiButton.setOnClickListener(new OnClickListener()
 		{
@@ -140,10 +145,11 @@ public class SnifferFragment extends SherlockFragment implements
 		hostsCheckBox.setOnCheckedChangeListener(this);
 		timestampCheckBox.setOnCheckedChangeListener(this);
 
-		//TextViews
+		// TextViews
 		runningTextView = (TextView) v.findViewById(R.id.runningTextView);
 		wifiTextView = (TextView) v.findViewById(R.id.wifiTextView);
 		networkTextView = (TextView) v.findViewById(R.id.networkTextView);
+		addressTextView = (TextView) v.findViewById(R.id.addressTextView);
 		packetLenLimEditText = (EditText) v
 				.findViewById(R.id.packetLenLimTextBox);
 
@@ -180,41 +186,76 @@ public class SnifferFragment extends SherlockFragment implements
 
 		aa.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		deviceSpinner.setAdapter(aa);
-		
-		//Check wifi status
-		WifiManager wifiMgr = (WifiManager) dsActivity.getSystemService(Context.WIFI_SERVICE);
-		if(wifiMgr.isWifiEnabled())
+
+		// Check wifi status
+		WifiManager wifiMgr = (WifiManager) dsActivity
+				.getSystemService(Context.WIFI_SERVICE);
+		if (wifiMgr.isWifiEnabled())
 		{
 			wifiTextView.setText("WiFi enabled");
 			String network = wifiMgr.getConnectionInfo().getSSID();
-			if(network != null)
+			if (network != null)
 				networkTextView.setText("Network SSID: " + network);
 			else
 				networkTextView.setText("Not Connected");
-		}
-		else
+		} else
 		{
 			wifiTextView.setText("WiFi disabled");
 			networkTextView.setText("Not Connected");
 		}
 		
+		String address = getLocalIpAddress();
+		
+		if(address == null)
+			addressTextView.setText("No addresses found");
+		else
+			addressTextView.setText("Address: " +  address);
+
 		setRunningText(dsActivity.tcpdumpIsRunning);
 	}
-	
+
+	/**
+	 * @return
+	 * 		String of the local ip address
+	 */
+	public String getLocalIpAddress()
+	{
+		try
+		{
+			for (Enumeration<NetworkInterface> en = NetworkInterface
+					.getNetworkInterfaces(); en.hasMoreElements();)
+			{
+				NetworkInterface intf = en.nextElement();
+				for (Enumeration<InetAddress> enumIpAddr = intf
+						.getInetAddresses(); enumIpAddr.hasMoreElements();)
+				{
+					InetAddress inetAddress = enumIpAddr.nextElement();
+					if (!inetAddress.isLoopbackAddress())
+					{
+						return inetAddress.getHostAddress().toString();
+					}
+				}
+			}
+		} catch (SocketException ex)
+		{
+			Log.e(LOG_TAG, ex.toString());
+		}
+		return null;
+	}
+
 	/**
 	 * Check sniffer status and update display string
 	 * 
 	 * @param isRunning
-	 * 			Whether tcpdump is running
+	 *            Whether tcpdump is running
 	 */
 	public void setRunningText(boolean isRunning)
 	{
-		if(isRunning)
+		if (isRunning)
 		{
 			runningTextView.setText("Sniffer is running");
 			runningTextView.setTextColor(Color.GREEN);
-		}
-		else
+		} else
 		{
 			runningTextView.setText("Sniffer is stopped");
 			runningTextView.setTextColor(Color.RED);
@@ -320,20 +361,19 @@ public class SnifferFragment extends SherlockFragment implements
 	 */
 	public void addFilter(String name, String filter)
 	{
-		filters.add(new TCPDumpFilter(filters.size() + 1, name,
-				filter));
+		filters.add(new TCPDumpFilter(filters.size() + 1, name, filter));
 		filterAdapter.notifyDataSetChanged();
 	}
-	
+
 	/**
 	 * Edits a filter in the array adapter
 	 * 
 	 * @param id
-	 *			Id of the filter
+	 *            Id of the filter
 	 * @param name
-	 * 			Name of the filter
+	 *            Name of the filter
 	 * @param filter
-	 *          Filter string
+	 *            Filter string
 	 */
 	public void updateFilter(int id, String name, String filter)
 	{
@@ -342,22 +382,19 @@ public class SnifferFragment extends SherlockFragment implements
 		editFilter.setFilter(filter);
 		filterAdapter.notifyDataSetChanged();
 	}
-	
-	
+
 	/**
 	 * Method to get the EditText field, mostly for closing soft keyboard
 	 * 
-	 * @return
-	 * 			The EditText component
+	 * @return The EditText component
 	 */
 	public EditText getPacketLenLimEditText()
 	{
 		return packetLenLimEditText;
 	}
-	
+
 	/**
-	 * @return
-	 * 			The TCPDumpOptions object
+	 * @return The TCPDumpOptions object
 	 */
 	public TCPDumpOptions getTCPDumpOptions()
 	{
