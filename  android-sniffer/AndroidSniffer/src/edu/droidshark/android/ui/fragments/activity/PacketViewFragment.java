@@ -3,20 +3,18 @@ package edu.droidshark.android.ui.fragments.activity;
 import java.util.ArrayList;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.AdapterView.OnItemLongClickListener;
 
 import com.actionbarsherlock.app.SherlockFragment;
 import com.voytechs.jnetstream.codec.Packet;
 
 import edu.droidshark.R;
-import edu.droidshark.android.ui.activities.DroidSharkActivity;
 
 /**
  * A fragment that displays incoming packets from tcpdump

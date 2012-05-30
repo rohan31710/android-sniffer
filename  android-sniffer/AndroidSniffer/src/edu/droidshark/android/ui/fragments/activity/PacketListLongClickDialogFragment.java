@@ -43,8 +43,6 @@ public class PacketListLongClickDialogFragment extends DialogFragment
 	{
 		super.onCreate(savedInstanceState);
 		
-		setRetainInstance(true);
-		
 		Dialog dialog = new Dialog(getActivity());
 		dialog.setContentView(R.layout.packet_dialog_layout);
 		
@@ -91,13 +89,5 @@ public class PacketListLongClickDialogFragment extends DialogFragment
         ExpListView.setAdapter(adapter);
         
 		return dialog;
-	}
-	
-	@Override
-	public void onDestroyView() 
-	{
-	  if (getDialog() != null && getRetainInstance())
-	    getDialog().setOnDismissListener(null);
-	  super.onDestroyView();
 	}
 }

@@ -43,8 +43,6 @@ public class SaveFragment extends SherlockDialogFragment
 	@Override
 	public Dialog onCreateDialog(Bundle savedInstanceState)
 	{
-		setRetainInstance(true);
-		
 		Dialog dialog = new Dialog(this.getActivity());
 
 		dialog.setContentView(R.layout.save_layout);
@@ -105,13 +103,5 @@ public class SaveFragment extends SherlockDialogFragment
 		});
 
 		return dialog;
-	}
-	
-	@Override
-	public void onDestroyView() 
-	{
-	  if (getDialog() != null && getRetainInstance())
-	    getDialog().setOnDismissListener(null);
-	  super.onDestroyView();
 	}
 }
