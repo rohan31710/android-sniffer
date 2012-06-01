@@ -8,15 +8,12 @@ import java.util.ArrayList;
 
 import org.apache.commons.io.FileUtils;
 
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
@@ -30,8 +27,6 @@ import android.widget.Toast;
 
 import com.actionbarsherlock.app.ActionBar;
 import com.actionbarsherlock.app.ActionBar.Tab;
-import com.actionbarsherlock.app.ActionBar.TabListener;
-import com.actionbarsherlock.app.SherlockFragment;
 import com.actionbarsherlock.app.SherlockFragmentActivity;
 import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.MenuInflater;
@@ -58,7 +53,8 @@ import edu.droidshark.tcpdump.TCPDumpListener;
 import edu.droidshark.tcpdump.TCPDumpOptions;
 import edu.droidshark.tcpdump.TCPDumpUtils;
 
-public class DroidSharkActivity extends SherlockFragmentActivity
+public class DroidSharkActivity extends SherlockFragmentActivity implements
+		ActionBar.TabListener
 {
 	private static final String TAG = "DroidSharkActivity";
 	private int currPane = SnifferConstants.SNIFFERPANE;
@@ -161,41 +157,36 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 			currPane = savedInstanceState.getInt("currPane");
 		}
 
-		// BEGIN FRAGMENT STUFF
-		if (currPane == SnifferConstants.SNIFFERPANE)
-			showSniffer();
-		else if (currPane == SnifferConstants.PACKETVIEWPANE)
-			showPacketView();
-
 		// Start service onCreate(), so it is not destroyed when activity
 		// unbinds.
+		if(SnifferConstants.DEBUG)
+			Log.d(TAG, "Starting service");
 		startService(new Intent(this, TCPDumpService.class));
-
+		
 		mActionBar = getSupportActionBar();
 		mActionBar.setDisplayHomeAsUpEnabled(false);
 		mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
 
-		mSnifTab = mActionBar
-				.newTab()
-				.setText(R.string.sniffer)
-				.setTabListener(
-						new ActionTabListener<SnifferFragment>(this, "Snif",
-								SnifferFragment.class));
-		if (currPane == SnifferConstants.SNIFFERPANE)
-			mActionBar.addTab(mSnifTab, true);
-		else
-			mActionBar.addTab(mSnifTab, false);
+		// Create tabs
+		mSnifTab = mActionBar.newTab().setText(R.string.sniffer)
+				.setTabListener(this);
+		mPVTab = mActionBar.newTab().setText(R.string.packet_view)
+				.setTabListener(this);
 
-		mPVTab = mActionBar
-				.newTab()
-				.setText(R.string.packet_view)
-				.setTabListener(
-						new ActionTabListener<PacketViewFragment>(this, "PV",
-								PacketViewFragment.class));
-		if (currPane == SnifferConstants.PACKETVIEWPANE)
-			mActionBar.addTab(mPVTab, true);
-		else
+		// Set display to last pane shown
+		if (currPane == SnifferConstants.SNIFFERPANE)
+		{
+			if (SnifferConstants.DEBUG)
+				Log.d(TAG, "currPane=SNIFFERPANE");
+			mActionBar.addTab(mSnifTab, true);
 			mActionBar.addTab(mPVTab, false);
+		} else if (currPane == SnifferConstants.PACKETVIEWPANE)
+		{
+			if (SnifferConstants.DEBUG)
+				Log.d(TAG, "currPane=PACKETVIEWPANE");
+			mActionBar.addTab(mSnifTab, false);
+			mActionBar.addTab(mPVTab, true);
+		}
 
 		// Get database of filters
 		filterDB = new FilterDatabase(this);
@@ -205,9 +196,11 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	protected void onStart()
 	{
 		super.onStart();
-		Log.d(TAG, "Binding TCPDumpService");
-		bindService(new Intent(this, TCPDumpService.class), sConn,
-				Context.BIND_AUTO_CREATE);
+		
+		//Bind to the service
+		if(SnifferConstants.DEBUG)
+			Log.d(TAG, "Binding TCPDumpService");
+		bindService(new Intent(this, TCPDumpService.class), sConn, 0);
 	}
 
 	@Override
@@ -215,7 +208,6 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	{
 		super.onResume();
 		tcpdumpIsRunning = TCPDumpUtils.isTCPDumpRunning();
-
 		if (SnifferConstants.DEBUG)
 			Log.d(TAG, "tcpdumpRunning=" + tcpdumpIsRunning);
 
@@ -248,9 +240,10 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	}
 
 	@Override
-	public void onStop()
+	protected void onStop()
 	{
 		super.onStop();
+		
 		// Unbind the service
 		if (isBound)
 		{
@@ -259,7 +252,16 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 				Log.d(TAG, "Unbinding TCPDumpService");
 			unbindService(sConn);
 		}
+	}
 
+	@Override
+	public void onDestroy()
+	{
+		super.onDestroy();
+
+		//Keep service running if tcpdump is running in background
+		if(!tcpdumpIsRunning)
+			stopService(new Intent(this, TCPDumpService.class));
 		filterDB.close();
 	}
 
@@ -272,13 +274,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		// that the action bar helpers have a chance to handle this event.
 		return super.onCreateOptionsMenu(menu);
 	}
-	
-	@Override
-	public void onConfigurationChanged(Configuration newConfig)
-	{
-	  super.onConfigurationChanged(newConfig);
-	}
-	
+
 	@Override
 	public void onSaveInstanceState(Bundle outState)
 	{
@@ -294,6 +290,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		switch (item.getItemId())
 		{
 		case R.id.exit:
+			if(tcpdumpIsRunning)
+				stopSniffer();
 			stopService(new Intent(this, TCPDumpService.class));
 			finish();
 			return true;
@@ -337,8 +335,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 	 */
 	private void openAboutDialog()
 	{
-		new AboutFragment().show(getSupportFragmentManager(),
-				"about");	
+		new AboutFragment().show(getSupportFragmentManager(), "about");
 	}
 
 	/**
@@ -453,8 +450,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 		File path = Environment.getExternalStorageDirectory();
 		File capDir = new File(path.getPath() + "/Capture");
 		if (capDir.listFiles() != null)
-			new UploadFragment(capDir)
-					.show(getSupportFragmentManager(), "upload");
+			new UploadFragment(capDir).show(getSupportFragmentManager(),
+					"upload");
 		else
 			Toast.makeText(this, "No files available to upload",
 					Toast.LENGTH_SHORT).show();
@@ -616,55 +613,53 @@ public class DroidSharkActivity extends SherlockFragmentActivity
 				@Override
 				public void run()
 				{
-					if(packetViewFragment != null)
-						packetViewFragment.updatePacketCount(numPackets, packet);
+					if (packetViewFragment != null)
+						packetViewFragment
+								.updatePacketCount(numPackets, packet);
 				}
 
 			});
 		}
 	}
 
-	public class ActionTabListener<T extends SherlockFragment> implements
-			TabListener
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.actionbarsherlock.app.ActionBar.TabListener#onTabSelected(com.
+	 * actionbarsherlock.app.ActionBar.Tab,
+	 * android.support.v4.app.FragmentTransaction)
+	 */
+	@Override
+	public void onTabSelected(Tab tab, FragmentTransaction ft)
 	{
-		private final Activity mActivity;
-		private final String mTag;
+		// Check if fragment is already initialized
+		if (tab.getText().equals(getString(R.string.sniffer)))
+			showSniffer();
+		else if (tab.getText().equals(getString(R.string.packet_view)))
+			showPacketView();
+	}
 
-		// private final Class<T> mClass;
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.actionbarsherlock.app.ActionBar.TabListener#onTabUnselected(com.
+	 * actionbarsherlock.app.ActionBar.Tab,
+	 * android.support.v4.app.FragmentTransaction)
+	 */
+	@Override
+	public void onTabUnselected(Tab tab, FragmentTransaction ft)
+	{/* Do nothing */
+	}
 
-		/**
-		 * @param activity
-		 * @param tag
-		 * @param clz
-		 */
-		public ActionTabListener(Activity activity, String tag, Class<T> clz)
-		{
-			mActivity = activity;
-			mTag = tag;
-			// mClass = clz;
-		}
-
-		public void onTabReselected(Tab tab, FragmentTransaction unused)
-		{
-			// User selected the already selected tab. do nothing
-
-		}
-
-		public void onTabSelected(Tab tab, FragmentTransaction unused)
-		{
-			// Check if fragment is already initialized
-			if (mTag == "Snif")
-			{
-				((DroidSharkActivity) mActivity).showSniffer();
-			} else if (mTag == "PV")
-			{
-				((DroidSharkActivity) mActivity).showPacketView();
-			}
-		}
-
-		public void onTabUnselected(Tab tab, FragmentTransaction unused)
-		{
-			// do nothing
-		}
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.actionbarsherlock.app.ActionBar.TabListener#onTabReselected(com.
+	 * actionbarsherlock.app.ActionBar.Tab,
+	 * android.support.v4.app.FragmentTransaction)
+	 */
+	@Override
+	public void onTabReselected(Tab tab, FragmentTransaction ft)
+	{/* Do nothing */
 	}
 }
