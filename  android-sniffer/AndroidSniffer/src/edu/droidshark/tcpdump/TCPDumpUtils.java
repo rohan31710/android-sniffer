@@ -174,6 +174,9 @@ public class TCPDumpUtils
 		try
 		{
 			String pid = getTCPDumpPID();
+			if(pid == null)
+				return;
+			
 			if (SnifferConstants.DEBUG)
 				Log.d(TAG, "Killing pid " + pid);
 			// Kill tcpdump

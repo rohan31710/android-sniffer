@@ -35,6 +35,12 @@ public class TCPDumpService extends Service
 	private boolean stopScanner;
 
 	@Override
+	public int onStartCommand(Intent intent, int flags, int startId)
+	{
+		return START_NOT_STICKY;
+	}
+
+	@Override
 	public void onCreate()
 	{
 		super.onCreate();
@@ -119,5 +125,13 @@ public class TCPDumpService extends Service
 	public void settListener(TCPDumpListener tListener)
 	{
 		this.tListener = tListener;
+	}
+
+	/**
+	 * @return the number of packets captured
+	 */
+	public int getCount()
+	{
+		return count;
 	}
 }
