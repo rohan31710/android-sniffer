@@ -142,7 +142,11 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		appPacketsTextView = (TextView) findViewById(R.id.appPacketsTextView);
 		
 		if(savedInstanceState != null)
+		{
 			currPane = savedInstanceState.getInt("currPane");
+			packetsReceived = savedInstanceState.getInt("packetsReceived");
+			totalPackets = savedInstanceState.getInt("totalPackets");
+		}
 			
 		// Start service onCreate(), so it is not destroyed when activity
 		// unbinds.
@@ -197,6 +201,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		super.onResume();
 		tcpdumpIsRunning = TCPDumpUtils.isTCPDumpRunning();
 		setStatusText(tcpdumpIsRunning);
+		updatePacketCount();
 		if (SnifferConstants.DEBUG)
 			Log.d(TAG, "tcpdumpRunning=" + tcpdumpIsRunning);
 
@@ -271,6 +276,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		super.onSaveInstanceState(outState);
 
 		outState.putInt("currPane", currPane);
+		outState.putInt("packetsReceived", packetsReceived);
+		outState.putInt("totalPackets", totalPackets);
 	}
 
 	@Override
