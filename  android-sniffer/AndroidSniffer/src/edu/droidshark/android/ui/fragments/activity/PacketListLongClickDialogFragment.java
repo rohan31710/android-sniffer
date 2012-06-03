@@ -89,4 +89,12 @@ public class PacketListLongClickDialogFragment extends DialogFragment
         
 		return dialog;
 	}
+	
+	@Override
+	public void onDestroyView() 
+	{
+	  if (getDialog() != null && getRetainInstance())
+	    getDialog().setOnDismissListener(null);
+	  super.onDestroyView();
+	}
 }

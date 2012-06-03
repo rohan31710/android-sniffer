@@ -77,4 +77,12 @@ public class AboutFragment extends SherlockDialogFragment
 			return "Unknown";
 		}
 	}
+	
+	@Override
+	public void onDestroyView() 
+	{
+	  if (getDialog() != null && getRetainInstance())
+	    getDialog().setOnDismissListener(null);
+	  super.onDestroyView();
+	}
 }

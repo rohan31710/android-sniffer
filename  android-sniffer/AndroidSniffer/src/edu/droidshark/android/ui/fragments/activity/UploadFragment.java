@@ -58,4 +58,12 @@ public class UploadFragment extends SherlockDialogFragment
 
 		return builder.create();
 	}
+	
+	@Override
+	public void onDestroyView() 
+	{
+	  if (getDialog() != null && getRetainInstance())
+	    getDialog().setOnDismissListener(null);
+	  super.onDestroyView();
+	}
 }
