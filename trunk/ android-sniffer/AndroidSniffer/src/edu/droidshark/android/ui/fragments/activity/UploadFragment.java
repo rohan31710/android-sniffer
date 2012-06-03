@@ -36,6 +36,8 @@ public class UploadFragment extends SherlockDialogFragment
 	@Override
 	public Dialog onCreateDialog(Bundle savedInstanceState)
 	{
+		setRetainInstance(true);
+		
 		final File[] files = path.listFiles();
 
 		final CharSequence[] items = new CharSequence[files.length];

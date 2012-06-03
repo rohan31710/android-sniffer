@@ -40,11 +40,10 @@ public class PacketListLongClickDialogFragment extends DialogFragment
 	
 	@Override
 	public Dialog onCreateDialog(Bundle savedInstanceState)
-	{
-		super.onCreate(savedInstanceState);
-		
+	{		
 		Dialog dialog = new Dialog(getActivity());
 		dialog.setContentView(R.layout.packet_dialog_layout);
+		setRetainInstance(true);
 		
 		ExpListView = (ExpandableListView) dialog.findViewById(R.id.expandableListView1);
 		

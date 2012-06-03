@@ -37,6 +37,7 @@ public class PacketViewFragment extends SherlockFragment
 		adapter = new ArrayAdapter<String>(this.getActivity(), R.layout.packet_view_list, packets);
 		
 		capturedPackets = new ArrayList<Packet>();
+		setRetainInstance(true);
 	}
 	
 	@Override

@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 
 import org.apache.commons.io.FileUtils;
 
@@ -68,7 +67,6 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 	private Process tProcess;
 	public FilterDatabase filterDB;
 	private DropboxAPI<AndroidAuthSession> dropboxAPI;
-	private ArrayList<Packet> capturedPackets;
 
 	private ServiceConnection sConn = new ServiceConnection()
 	{
@@ -106,7 +104,6 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		capturedPackets = new ArrayList<Packet>();
 
 		// Check to see if tcpdump is present
 		try
@@ -164,29 +161,33 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		startService(new Intent(this, TCPDumpService.class));
 		
 		mActionBar = getSupportActionBar();
-		mActionBar.setDisplayHomeAsUpEnabled(false);
-		mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
-
-		// Create tabs
-		mSnifTab = mActionBar.newTab().setText(R.string.sniffer)
-				.setTabListener(this);
-		mPVTab = mActionBar.newTab().setText(R.string.packet_view)
-				.setTabListener(this);
+		mActionBar.setDisplayHomeAsUpEnabled(false);			
 
 		// Set display to last pane shown
-		if (currPane == SnifferConstants.SNIFFERPANE)
-		{
-			if (SnifferConstants.DEBUG)
-				Log.d(TAG, "currPane=SNIFFERPANE");
-			mActionBar.addTab(mSnifTab, true);
-			mActionBar.addTab(mPVTab, false);
-		} else if (currPane == SnifferConstants.PACKETVIEWPANE)
-		{
-			if (SnifferConstants.DEBUG)
-				Log.d(TAG, "currPane=PACKETVIEWPANE");
-			mActionBar.addTab(mSnifTab, false);
-			mActionBar.addTab(mPVTab, true);
+		if(!getResources().getBoolean(R.bool.has_two_panes))
+		{	
+			// Create tabs
+			mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
+			mSnifTab = mActionBar.newTab().setText(R.string.sniffer)
+					.setTabListener(this);
+			mPVTab = mActionBar.newTab().setText(R.string.packet_view)
+					.setTabListener(this);
+			if (currPane == SnifferConstants.SNIFFERPANE)
+			{
+				if (SnifferConstants.DEBUG)
+					Log.d(TAG, "currPane=SNIFFERPANE");
+				mActionBar.addTab(mSnifTab, true);
+				mActionBar.addTab(mPVTab, false);
+			} else if (currPane == SnifferConstants.PACKETVIEWPANE)
+			{
+				if (SnifferConstants.DEBUG)
+					Log.d(TAG, "currPane=PACKETVIEWPANE");
+				mActionBar.addTab(mSnifTab, false);
+				mActionBar.addTab(mPVTab, true);
+			}
 		}
+		else
+			mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
 
 		// Get database of filters
 		filterDB = new FilterDatabase(this);

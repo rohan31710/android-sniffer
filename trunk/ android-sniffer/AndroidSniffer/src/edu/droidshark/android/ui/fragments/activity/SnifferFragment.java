@@ -8,11 +8,14 @@ import java.util.Enumeration;
 import java.util.List;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -53,6 +56,7 @@ public class SnifferFragment extends SherlockFragment implements
 	private ArrayAdapter<TCPDumpFilter> filterAdapter;
 	private EditText packetLenLimEditText;
 	private TCPDumpOptions tcpdumpOptions;
+	private BroadcastReceiver wifiReceiver;
 
 	@Override
 	public void onAttach(Activity activity)
@@ -155,10 +159,19 @@ public class SnifferFragment extends SherlockFragment implements
 
 		// Setting values from preferences
 		SharedPreferences prefs = dsActivity.getPreferences(0);
-		deviceSpinner.setSelection(prefs.getInt("device", 0));
-		filterSpinner.setSelection(prefs.getInt("filter", 0));
-		verboseSpinner.setSelection(prefs.getInt("verboseMode", 2));
-		dataSpinner.setSelection(prefs.getInt("dataMode", 2));
+		int deviceId = prefs.getInt("device", 0);
+		deviceSpinner.setSelection(deviceId);
+		tcpdumpOptions.setDeviceId(deviceId);
+		int filterId = prefs.getInt("filter", 0);
+		filterSpinner.setSelection(filterId);
+		tcpdumpOptions.setFilter((TCPDumpFilter) filterSpinner
+				.getItemAtPosition(filterId));
+		int verboseMode = prefs.getInt("verboseMode", 2);
+		verboseSpinner.setSelection(verboseMode);
+		tcpdumpOptions.setVerboseMode(verboseMode);
+		int dataMode = prefs.getInt("dataMode", 2);
+		dataSpinner.setSelection(dataMode);
+		tcpdumpOptions.setDataMode(dataMode);
 		boolean hosts = prefs.getBoolean("hosts", false);
 		tcpdumpOptions.setnoHostNames(!hosts);
 		hostsCheckBox.setChecked(hosts);
@@ -187,9 +200,38 @@ public class SnifferFragment extends SherlockFragment implements
 		aa.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		deviceSpinner.setAdapter(aa);
 
-		// Check wifi status
+		setNetworkDetails();
+
+		setRunningText(dsActivity.tcpdumpIsRunning);
+		
+		// Broadcast receiver for updating status of wifi, ssid name, and ip
+		// address when network state changes
+		wifiReceiver = new BroadcastReceiver()
+		{
+			@Override
+			public void onReceive(Context context, Intent intent)
+			{
+				setNetworkDetails();
+			}
+		};
+		dsActivity.registerReceiver(wifiReceiver, new IntentFilter(
+				ConnectivityManager.CONNECTIVITY_ACTION));
+	}
+
+	/**
+	 * Sets fields related to wifi connection
+	 * 
+	 * @param wifiIsEnabled
+	 *            Whether wifi is enabled or not
+	 * @param network
+	 *            The ssid of the network
+	 */
+	private void setNetworkDetails()
+	{
 		WifiManager wifiMgr = (WifiManager) dsActivity
 				.getSystemService(Context.WIFI_SERVICE);
+		
+		// Set wifi details
 		if (wifiMgr.isWifiEnabled())
 		{
 			wifiTextView.setText("WiFi enabled");
@@ -203,23 +245,9 @@ public class SnifferFragment extends SherlockFragment implements
 			wifiTextView.setText("WiFi disabled");
 			networkTextView.setText("Not Connected");
 		}
-		
-		String address = getLocalIpAddress();
-		
-		if(address == null)
-			addressTextView.setText("No addresses found");
-		else
-			addressTextView.setText("Address: " +  address);
 
-		setRunningText(dsActivity.tcpdumpIsRunning);
-	}
-
-	/**
-	 * @return
-	 * 		String of the local ip address
-	 */
-	public String getLocalIpAddress()
-	{
+		// Get ip address
+		String ipAddress = "No addresses found";
 		try
 		{
 			for (Enumeration<NetworkInterface> en = NetworkInterface
@@ -232,7 +260,7 @@ public class SnifferFragment extends SherlockFragment implements
 					InetAddress inetAddress = enumIpAddr.nextElement();
 					if (!inetAddress.isLoopbackAddress())
 					{
-						return inetAddress.getHostAddress().toString();
+						ipAddress = inetAddress.getHostAddress().toString();
 					}
 				}
 			}
@@ -240,7 +268,8 @@ public class SnifferFragment extends SherlockFragment implements
 		{
 			Log.e(LOG_TAG, ex.toString());
 		}
-		return null;
+
+		addressTextView.setText(ipAddress);
 	}
 
 	/**
@@ -260,6 +289,14 @@ public class SnifferFragment extends SherlockFragment implements
 			runningTextView.setText("Sniffer is stopped");
 			runningTextView.setTextColor(Color.RED);
 		}
+	}
+
+	@Override
+	public void onPause()
+	{
+		super.onPause();
+		
+		dsActivity.unregisterReceiver(wifiReceiver);
 	}
 
 	@Override
