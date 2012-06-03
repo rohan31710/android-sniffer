@@ -105,4 +105,12 @@ public class SaveFragment extends SherlockDialogFragment
 
 		return dialog;
 	}
+	
+	@Override
+	public void onDestroyView() 
+	{
+	  if (getDialog() != null && getRetainInstance())
+	    getDialog().setOnDismissListener(null);
+	  super.onDestroyView();
+	}
 }
