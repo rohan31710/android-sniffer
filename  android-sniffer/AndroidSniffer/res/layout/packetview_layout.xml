@@ -2,12 +2,21 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
-
+	
+    <TextView 
+        android:id="@+id/packetCountText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:text="Packets Captured: 0"
+        android:background="#FF62615A" />
+    
     <ListView
         android:id="@+id/packetListView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
+        android:layout_below="@+id/packetCountText"
         android:layout_alignParentLeft="true" >
     </ListView>
 
