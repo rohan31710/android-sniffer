@@ -77,10 +77,15 @@ public class PacketViewFragment extends SherlockFragment
 		return v;
 	}
 	
-	public void updatePacketCount(int numPackets, Packet packet)
+	public void updatePacketCount(Packet packet)
 	{
 		capturedPackets.add(packet);
 		adapter.add(packet.getSummary());
+	}
+	
+	public void clearPackets()
+	{
+		adapter.clear();
 	}
 	
 }
