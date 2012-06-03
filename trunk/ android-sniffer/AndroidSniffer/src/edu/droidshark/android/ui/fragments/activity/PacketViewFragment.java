@@ -7,9 +7,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import com.actionbarsherlock.app.SherlockFragment;
 import com.voytechs.jnetstream.codec.Packet;
@@ -24,6 +26,7 @@ import edu.droidshark.R;
  */
 public class PacketViewFragment extends SherlockFragment
 {
+	private TextView packetCount;
 	private ListView packetList;
 	private ArrayAdapter<String> adapter;
 	private ArrayList<String> packets = new ArrayList<String>();
@@ -55,14 +58,17 @@ public class PacketViewFragment extends SherlockFragment
 	{
 		View v = inflater.inflate(R.layout.packetview_layout, container, false);
 		
+		packetCount = (TextView) v.findViewById(R.id.packetCountText);
+		packetCount.setText("Packets Captured: 0");
+		
 		packetList = (ListView) v.findViewById(R.id.packetListView);
 		packetList.setTranscriptMode(ListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
 		
-		packetList.setOnItemLongClickListener(new OnItemLongClickListener()
+		packetList.setOnItemClickListener(new OnItemClickListener()
 		{
 
 			@Override
-			public boolean onItemLongClick(AdapterView<?> parent, View v,
+			public void onItemClick(AdapterView<?> parent, View v,
 					int position, long id)
 			{
 				if (parent.getAdapter() instanceof ArrayAdapter)
@@ -70,8 +76,6 @@ public class PacketViewFragment extends SherlockFragment
 					PacketListLongClickDialogFragment df = new PacketListLongClickDialogFragment(capturedPackets.get(position));
 					df.show(getFragmentManager(), "long click");
 				}
-				
-				return true;
 			}
 			
 		});
@@ -82,7 +86,7 @@ public class PacketViewFragment extends SherlockFragment
 	public void updatePacketCount(int numPackets, Packet packet)
 	{
 		capturedPackets.add(packet);
-		
+		packetCount.setText("Packets Captured: "+capturedPackets.size());
 		adapter.add(packet.getSummary());
 	}
 	
