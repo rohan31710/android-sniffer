@@ -493,6 +493,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		}
 
 		setStatusText(tcpdumpIsRunning);
+		
+		packetViewFragment.clearPackets();
 	}
 
 	/**
@@ -638,8 +640,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 					packetsReceived++;
 					updatePacketCount();
 					if (packetViewFragment != null)
-						packetViewFragment
-								.updatePacketCount(numPackets, packet);
+						packetViewFragment.updatePacketCount(packet);
 				}
 
 			});
