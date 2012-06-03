@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
@@ -21,7 +22,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
-import android.widget.FrameLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.actionbarsherlock.app.ActionBar;
@@ -56,12 +57,12 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		ActionBar.TabListener
 {
 	private static final String TAG = "DroidSharkActivity";
-	private int currPane = SnifferConstants.SNIFFERPANE;
+	private int currPane = SnifferConstants.SNIFFERPANE, packetsReceived, totalPackets;
 	private SnifferFragment snifferFragment;
 	private PacketViewFragment packetViewFragment;
-	private FrameLayout firstPane, secondPane;
 	private ActionBar.Tab mSnifTab, mPVTab;
 	private ActionBar mActionBar;
+	private TextView statusTextView, filePacketsTextView, appPacketsTextView;
 	public boolean tcpdumpIsRunning, isBound, dropboxLoggedIn;
 	private TCPDumpService tService;
 	private Process tProcess;
@@ -82,6 +83,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		{
 			tService = ((TCPDumpBinder) service).getService();
 			tService.settListener(new TCPDumpCallbacks());
+			totalPackets = tService.getCount();
+			DroidSharkActivity.this.updatePacketCount();
 			isBound = true;
 		}
 
@@ -119,6 +122,9 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 			Log.e(getClass().getSimpleName(),
 					"IOException, message=" + e.getMessage());
 		}
+		
+		// Get database of filters
+		filterDB = new FilterDatabase(this);
 
 		setContentView(R.layout.main);
 
@@ -126,34 +132,18 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		AndroidAuthSession session = buildSession();
 		dropboxAPI = new DropboxAPI<AndroidAuthSession>(session);
 		dropboxLoggedIn = dropboxAPI.getSession().isLinked();
-
-		firstPane = (FrameLayout) findViewById(R.id.first_pane);
-		secondPane = (FrameLayout) findViewById(R.id.second_pane);
-
-		if (SnifferConstants.DEBUG)
-			Log.d(TAG, "Running on device: " + android.os.Build.MODEL);
-
-		// Fragments are saved in the instance state by default, so they don't
-		// have to be recreated.
-		if (savedInstanceState == null)
-		{
-			snifferFragment = new SnifferFragment();
-			packetViewFragment = new PacketViewFragment();
-			FragmentTransaction transaction = getSupportFragmentManager()
-					.beginTransaction();
-
-			transaction.add(R.id.first_pane, snifferFragment, "sniffer");
-			transaction.add(R.id.second_pane, packetViewFragment, "packetView");
-			transaction.commit();
-		} else
-		{
-			snifferFragment = (SnifferFragment) getSupportFragmentManager()
-					.findFragmentByTag("sniffer");
-			packetViewFragment = (PacketViewFragment) getSupportFragmentManager()
-					.findFragmentByTag("packetView");
+		
+		snifferFragment = (SnifferFragment) getSupportFragmentManager().findFragmentById(R.id.snifferFragment);
+		packetViewFragment = (PacketViewFragment) getSupportFragmentManager().findFragmentById(R.id.packetViewFragment);
+		
+		//Status related text views
+		statusTextView = (TextView) findViewById(R.id.statusTextView);
+		filePacketsTextView = (TextView) findViewById(R.id.filePacketsTextView);
+		appPacketsTextView = (TextView) findViewById(R.id.appPacketsTextView);
+		
+		if(savedInstanceState != null)
 			currPane = savedInstanceState.getInt("currPane");
-		}
-
+			
 		// Start service onCreate(), so it is not destroyed when activity
 		// unbinds.
 		if(SnifferConstants.DEBUG)
@@ -188,9 +178,6 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		}
 		else
 			mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
-
-		// Get database of filters
-		filterDB = new FilterDatabase(this);
 	}
 
 	@Override
@@ -209,6 +196,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 	{
 		super.onResume();
 		tcpdumpIsRunning = TCPDumpUtils.isTCPDumpRunning();
+		setStatusText(tcpdumpIsRunning);
 		if (SnifferConstants.DEBUG)
 			Log.d(TAG, "tcpdumpRunning=" + tcpdumpIsRunning);
 
@@ -494,6 +482,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 			{
 				tProcess = proc;
 				tService.openFileStream(tProcess);
+				packetsReceived = 0; totalPackets = 0;
+				updatePacketCount();
 			}
 		} catch (NumberFormatException e)
 		{
@@ -502,7 +492,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 			tcpdumpIsRunning = false;
 		}
 
-		snifferFragment.setRunningText(tcpdumpIsRunning);
+		setStatusText(tcpdumpIsRunning);
 	}
 
 	/**
@@ -514,9 +504,39 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		TCPDumpUtils.stopTCPDump();
 		tService.closeFileStream();
 		tcpdumpIsRunning = false;
-		snifferFragment.setRunningText(tcpdumpIsRunning);
+		setStatusText(tcpdumpIsRunning);
 	}
 
+	/**
+	 * Check sniffer status and update display string
+	 * 
+	 * @param isRunning
+	 *            Whether tcpdump is running
+	 */
+	private void setStatusText(boolean isRunning)
+	{
+		if (isRunning)
+		{
+			statusTextView.setText("RUNNING");
+			statusTextView.setTextColor(Color.GREEN);
+		} else
+		{
+			statusTextView.setText("STOPPED");
+			statusTextView.setTextColor(Color.RED);
+		}
+	}
+	
+	/**
+	 * Updates the packet text views
+	 * 
+	 */
+	private void updatePacketCount()
+	{
+		filePacketsTextView.setText(totalPackets + "");
+		appPacketsTextView.setText(packetsReceived + "");
+		
+	}
+	
 	/**
 	 * Closes the soft keyboard
 	 * 
@@ -535,8 +555,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 	 */
 	public void showSniffer()
 	{
-		firstPane.setVisibility(View.VISIBLE);
-		secondPane.setVisibility(View.GONE);
+		snifferFragment.getView().setVisibility(View.VISIBLE);
+		packetViewFragment.getView().setVisibility(View.GONE);
 		currPane = SnifferConstants.SNIFFERPANE;
 
 		if (mSnifTab != null)
@@ -548,8 +568,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 	 */
 	public void showPacketView()
 	{
-		firstPane.setVisibility(View.GONE);
-		secondPane.setVisibility(View.VISIBLE);
+		snifferFragment.getView().setVisibility(View.GONE);
+		packetViewFragment.getView().setVisibility(View.VISIBLE);
 		currPane = SnifferConstants.PACKETVIEWPANE;
 
 		if (mPVTab != null)
@@ -614,6 +634,9 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 				@Override
 				public void run()
 				{
+					totalPackets++;
+					packetsReceived++;
+					updatePacketCount();
 					if (packetViewFragment != null)
 						packetViewFragment
 								.updatePacketCount(numPackets, packet);

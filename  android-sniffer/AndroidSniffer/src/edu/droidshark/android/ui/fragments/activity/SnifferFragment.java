@@ -14,7 +14,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -49,8 +48,7 @@ public class SnifferFragment extends SherlockFragment implements
 	protected final String LOG_TAG = getClass().getSimpleName();
 	protected DroidSharkActivity dsActivity;
 	private static final String TAG = "SnifferFragment";
-	private TextView runningTextView, wifiTextView, networkTextView,
-			addressTextView;
+	private TextView wifiTextView, networkTextView, addressTextView;
 	private Spinner deviceSpinner, filterSpinner;
 	private List<TCPDumpFilter> filters;
 	private ArrayAdapter<TCPDumpFilter> filterAdapter;
@@ -150,7 +148,6 @@ public class SnifferFragment extends SherlockFragment implements
 		timestampCheckBox.setOnCheckedChangeListener(this);
 
 		// TextViews
-		runningTextView = (TextView) v.findViewById(R.id.runningTextView);
 		wifiTextView = (TextView) v.findViewById(R.id.wifiTextView);
 		networkTextView = (TextView) v.findViewById(R.id.networkTextView);
 		addressTextView = (TextView) v.findViewById(R.id.addressTextView);
@@ -202,8 +199,6 @@ public class SnifferFragment extends SherlockFragment implements
 
 		setNetworkDetails();
 
-		setRunningText(dsActivity.tcpdumpIsRunning);
-		
 		// Broadcast receiver for updating status of wifi, ssid name, and ip
 		// address when network state changes
 		wifiReceiver = new BroadcastReceiver()
@@ -230,7 +225,7 @@ public class SnifferFragment extends SherlockFragment implements
 	{
 		WifiManager wifiMgr = (WifiManager) dsActivity
 				.getSystemService(Context.WIFI_SERVICE);
-		
+
 		// Set wifi details
 		if (wifiMgr.isWifiEnabled())
 		{
@@ -272,30 +267,11 @@ public class SnifferFragment extends SherlockFragment implements
 		addressTextView.setText(ipAddress);
 	}
 
-	/**
-	 * Check sniffer status and update display string
-	 * 
-	 * @param isRunning
-	 *            Whether tcpdump is running
-	 */
-	public void setRunningText(boolean isRunning)
-	{
-		if (isRunning)
-		{
-			runningTextView.setText("Sniffer is running");
-			runningTextView.setTextColor(Color.GREEN);
-		} else
-		{
-			runningTextView.setText("Sniffer is stopped");
-			runningTextView.setTextColor(Color.RED);
-		}
-	}
-
 	@Override
 	public void onPause()
 	{
 		super.onPause();
-		
+
 		dsActivity.unregisterReceiver(wifiReceiver);
 	}
 

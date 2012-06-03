@@ -2,17 +2,105 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal" >
+    android:orientation="vertical" >
 
-    <FrameLayout
-		android:id="@+id/first_pane"
-		android:layout_width="match_parent"
-		android:layout_height="match_parent"
-	/>
-    <FrameLayout
-		android:id="@+id/second_pane"
-		android:layout_width="match_parent"
-		android:layout_height="match_parent"
-	/>
+    <LinearLayout
+        android:layout_width="match_parent"
+    	android:layout_height="0dp"
+    	android:layout_weight="1"
+    	android:orientation="horizontal" >
+    	
+	    <fragment android:name="edu.droidshark.android.ui.fragments.activity.SnifferFragment"
+	            android:id="@+id/snifferFragment"
+	            android:layout_weight="1"
+	            android:layout_width="0dp"
+	            android:layout_height="match_parent" >
+	        <!-- Preview: layout=@layout/sniffer_layout -->
+	    </fragment>
+
+	    <fragment android:name="edu.droidshark.android.ui.fragments.activity.PacketViewFragment"
+            android:id="@+id/packetViewFragment"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="match_parent" >
+	        <!-- Preview: layout=@layout/packetview_layout -->
+	    </fragment>	    
+    </LinearLayout>
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+    	android:layout_height="40dp"
+    	android:orientation="horizontal" >
+	    
+        <LinearLayout
+            android:layout_width="0dp"
+    		android:layout_height="match_parent"
+    		android:layout_weight="1"
+    		android:background="@drawable/border" >
+    		<LinearLayout
+	            android:layout_width="match_parent"
+	    		android:layout_height="match_parent"
+	    		android:orientation="vertical" 
+	    		android:gravity="center_horizontal" >
+		        <TextView
+		            android:layout_width="wrap_content"
+		    		android:layout_height="wrap_content"
+		    		android:textSize="10sp"
+		    		android:text="Sniffer Status" />
+		        <TextView
+		            android:layout_width="wrap_content"
+		    		android:layout_height="wrap_content"
+		    		android:id="@+id/statusTextView"
+		    		android:textSize="10sp"
+		    		android:text="TEST" />
+	        </LinearLayout>
+		</LinearLayout>
+		<LinearLayout
+            android:layout_width="0dp"
+    		android:layout_height="match_parent"
+    		android:layout_weight="1"
+    		android:background="@drawable/border" >
+    		<LinearLayout
+	            android:layout_width="match_parent"
+	    		android:layout_height="match_parent"
+	    		android:orientation="vertical"
+	    		android:gravity="center_horizontal" >
+		        <TextView
+		            android:layout_width="wrap_content"
+		    		android:layout_height="wrap_content"
+		    		android:textSize="10sp"
+		    		android:text="Packets Captured" />
+		        <TextView
+		            android:layout_width="wrap_content"
+		    		android:layout_height="wrap_content"
+		    		android:id="@+id/filePacketsTextView"
+		    		android:textSize="10sp"
+		    		android:text="TEST" />
+	        </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="0dp"
+    		android:layout_height="match_parent"
+    		android:layout_weight="1"
+    		android:background="@drawable/border" >
+	        <LinearLayout
+	            android:layout_width="match_parent"
+	    		android:layout_height="match_parent"
+	    		android:orientation="vertical"
+	    		android:gravity="center_horizontal" >
+		        <TextView
+		            android:layout_width="wrap_content"
+		    		android:layout_height="wrap_content"
+		    		android:textSize="10sp"
+		    		android:text="Viewable Packets" />
+		        <TextView
+		            android:layout_width="wrap_content"
+		    		android:layout_height="wrap_content"
+		    		android:id="@+id/appPacketsTextView"
+		    		android:textSize="10sp"
+		    		android:text="TEST" />
+	        </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
 
 </LinearLayout>
