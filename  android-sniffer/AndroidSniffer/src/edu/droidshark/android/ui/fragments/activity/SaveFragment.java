@@ -44,6 +44,7 @@ public class SaveFragment extends SherlockDialogFragment
 	public Dialog onCreateDialog(Bundle savedInstanceState)
 	{
 		Dialog dialog = new Dialog(this.getActivity());
+		setRetainInstance(true);
 
 		dialog.setContentView(R.layout.save_layout);
 		dialog.setTitle("Save Capture File");

@@ -34,11 +34,12 @@ public class FilterEditFragment extends SherlockDialogFragment
 	{
 		this.filter = filter;
 	}
-	
+
 	@Override
 	public Dialog onCreateDialog(Bundle savedInstanceState)
 	{
 		Dialog dialog = new Dialog(this.getActivity());
+		setRetainInstance(true);
 
 		dialog.setContentView(R.layout.filter_edit_layout);
 		dialog.setTitle("Edit Filter");
