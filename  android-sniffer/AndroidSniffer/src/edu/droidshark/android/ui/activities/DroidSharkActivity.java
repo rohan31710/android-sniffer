@@ -227,7 +227,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 			}
 		}
 	}
-
+	
 	@Override
 	protected void onStop()
 	{
@@ -242,15 +242,16 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 			unbindService(sConn);
 		}
 	}
-
+	
 	@Override
 	public void onDestroy()
 	{
 		super.onDestroy();
-
+		
 		//Keep service running if tcpdump is running in background
 		if(!tcpdumpIsRunning)
 			stopService(new Intent(this, TCPDumpService.class));
+		
 		filterDB.close();
 	}
 
@@ -281,7 +282,6 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		case R.id.exit:
 			if(tcpdumpIsRunning)
 				stopSniffer();
-			stopService(new Intent(this, TCPDumpService.class));
 			finish();
 			return true;
 		case R.id.save:
