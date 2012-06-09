@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">DroidShark</string>
+    <string name="exit">Exit</string>
+    <string name="save">Save</string>
+    <string name="upload">Dropbox Upload</string>
+    <string name="sniffer">Sniffer</string>
+    <string name="packet_view">PacketView</string>
+    <string name="about">About</string>
+    <string name="uses"><u>Uses</u></string>
+    <string name="about_text">DroidShark - http://code.google.com/p/android-sniffer</string>
+    <string-array name="verbose_mode">
+        <item>Disabled</item>
+        <item>Level 1</item>
+        <item>Level 2</item>
+        <item>Level 3</item>
+    </string-array>
+    <string-array name="data_mode">
+        <item>Disabled</item>
+        <item>Hex</item>
+        <item>ASCII</item>
+    </string-array>
+    <string-array name="libraries">
+        <item>TCPDUMP - http://www.tcpdump.org</item>
+        <item>ActionBarSherlock - http://actionbarsherlock.com</item>
+        <item>jNetStream - http://http://jnetstream.com</item>
+    </string-array>
+</resources>
