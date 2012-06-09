@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="edu.droidshark"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/> 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    
+    <uses-sdk 
+        android:minSdkVersion="8"
+        android:targetSdkVersion="15" />
+
+    <application
+        android:icon="@drawable/networkblue"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" >
+        <activity
+            android:label="@string/app_name"
+            android:name=".android.ui.activities.DroidSharkActivity" >
+            <intent-filter >
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+	      android:name="com.dropbox.client2.android.AuthActivity"
+	      android:launchMode="singleTask"
+	      android:configChanges="orientation|keyboard">
+	      <intent-filter>
+	        <!-- Change this to be db- followed by your app key -->
+	        <data android:scheme="db-8h9vli5kaemkqwa" />
+	        <action android:name="android.intent.action.VIEW" />
+	        <category android:name="android.intent.category.BROWSABLE"/>
+	        <category android:name="android.intent.category.DEFAULT" />
+	      </intent-filter>
+	    </activity>
+        <service android:name=".android.services.TCPDumpService"></service>   
+    </application>
+
+</manifest>
