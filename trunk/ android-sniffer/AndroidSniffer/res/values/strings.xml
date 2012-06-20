@@ -5,8 +5,10 @@
     <string name="exit">Exit</string>
     <string name="save">Save</string>
     <string name="upload">Dropbox Upload</string>
+    <string name="logout">Dropbox Log Out</string>
     <string name="sniffer">Sniffer</string>
     <string name="packet_view">PacketView</string>
+    <string name="help">Help</string>
     <string name="about">About</string>
     <string name="uses"><u>Uses</u></string>
     <string name="about_text">DroidShark - http://code.google.com/p/android-sniffer</string>

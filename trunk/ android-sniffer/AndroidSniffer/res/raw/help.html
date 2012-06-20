@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+	<META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=utf-8">
+	<TITLE></TITLE>
+	<META NAME="GENERATOR" CONTENT="LibreOffice 3.4  (Unix)">
+	<META NAME="AUTHOR" CONTENT="Sam ">
+	<META NAME="CREATED" CONTENT="20120620;14221600">
+	<META NAME="CHANGEDBY" CONTENT="Sam ">
+	<META NAME="CHANGED" CONTENT="20120620;15240200">
+	<STYLE TYPE="text/css">
+	<!--
+		@page { margin: 0.79in }
+		P { margin-bottom: 0.08in }
+		A:link { so-language: zxx }
+	-->
+	</STYLE>
+</HEAD>
+<BODY LANG="en-US" DIR="LTR">
+<P STYLE="margin-bottom: 0in">The primary purpose of this application 
+is to capture network packets. The status display at the bottom of 
+the screen has 3 fields regarding the status of the current capture. 
+The first is simply whether the sniifer is running or not. The 
+sniffer will remain running when the application is closed unless you 
+the application is closed via Menu-&gt;Exit.</P>
+
+</P>
+<P STYLE="margin-bottom: 0in">The “Packets Captured” status 
+indicates how many packets have been captured and written to file. 
+All packets captured are written to file, however only packets that 
+come in when the application is visible will be available to view. 
+The reason for this is that Android has limited memory and storing 
+all captured packets in memory could be an issue. If displaying all 
+packets is a feature that is requested, we may consider adding it in 
+the future. The number of packets that can be viewed within the 
+application is the number indicated by the “Viewable Packets” 
+status.</P>
+
+</P>
+<P STYLE="margin-bottom: 0in"><B>Starting a Capture</B></P>
+<P STYLE="margin-bottom: 0in; font-weight: normal">The play and stop 
+buttons in the action bar are used to start and stop a capture 
+session.</P>
+
+</P>
+<P STYLE="margin-bottom: 0in"><B>Capture Options</B></P>
+<P STYLE="margin-bottom: 0in; font-weight: normal">The “Sniffer” 
+tab will display options for the capture. These correspond to options 
+for tcpdump, see <A HREF="http://www.tcpdump.org/tcpdump_man.html">http://www.tcpdump.org/tcpdump_man.html</A> 
+for more details.</P>
+
+</P>
+<UL>
+	<LI><P STYLE="margin-bottom: 0in; font-weight: normal">Interface-
+	The interface for the capture, likely you will have an option of 
+	eth0, ppp0, or lo0. The eth0 option will typically refer to the wifi 
+	adapter, ppp0 for the cellular adapter, and lo0 is the loopback.</P>
+	<LI><P STYLE="margin-bottom: 0in; font-weight: normal">Filter- There 
+	is full support for filters supported by tcpdump.</P>
+	<LI><P STYLE="margin-bottom: 0in; font-weight: normal">Verbose 
+	Output- This refers to the -v, vv, or vvv options of tcpdump.</P>
+	<LI><P STYLE="margin-bottom: 0in; font-weight: normal">Data Output- 
+	This refers to the the -x and -X options of tcpdump.</P>
+	<LI><P STYLE="margin-bottom: 0in; font-weight: normal">Resolve 
+	Hosts- This refers to the -n option of tcpdump.</P>
+	<LI><P STYLE="margin-bottom: 0in; font-weight: normal">Print 
+	Ttimestamps- This refers to the -t option of tcpdump.</P>
+	<LI><P STYLE="margin-bottom: 0in; font-weight: normal">Packet Byte 
+	Limit- This refers to the -s option of tcpdump. 0 means unlimited.</P>
+</UL>
+
+<P STYLE="margin-bottom: 0in"><B>Viewing Packets</B></P>
+<P STYLE="margin-bottom: 0in; font-style: normal; font-weight: normal">
+Selecting the “PacketView” tab will enable you to view packets 
+that have been captured. Packet summaries are displayed and selecting 
+a packet will result in a display that shows more details about the 
+packet. Please note the above mentioned restriction about viewing 
+packets in the application.</P>
+
+<P STYLE="margin-bottom: 0in; font-style: normal"><B>Saving Packets</B></P>
+<P STYLE="margin-bottom: 0in; font-style: normal; font-weight: normal">
+Menu-&gt;Save will allow you to save the last capture. You cannot 
+save while a capture is running. The default name of the capture file 
+is the current timestamp, but can be edited. Capture files are stored 
+on the sdcard in the “Capture” folder.</P>
+
+<P STYLE="margin-bottom: 0in; font-style: normal"><B>Uploading
+Packets</B></P>
+<P STYLE="margin-bottom: 0in; font-style: normal; font-weight: normal">
+AndroidSniffer has the ability to upload packets via Dropbox. Go to 
+Menu-&gt;Dropbox Upload to upload packets. Once your credentials have 
+been entered you can select this option again and a list of files to 
+upload will appear. You can log out of Dropbox with Menu-&gt;Dropbox 
+Log Out.</P>
+</BODY>
+</HTML>

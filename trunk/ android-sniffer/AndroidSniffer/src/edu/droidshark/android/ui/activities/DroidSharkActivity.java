@@ -43,6 +43,7 @@ import edu.droidshark.android.dropbox.UploadCaptureFile;
 import edu.droidshark.android.services.TCPDumpBinder;
 import edu.droidshark.android.services.TCPDumpService;
 import edu.droidshark.android.ui.fragments.activity.AboutFragment;
+import edu.droidshark.android.ui.fragments.activity.HelpFragment;
 import edu.droidshark.android.ui.fragments.activity.PacketViewFragment;
 import edu.droidshark.android.ui.fragments.activity.SaveFragment;
 import edu.droidshark.android.ui.fragments.activity.SnifferFragment;
@@ -57,7 +58,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		ActionBar.TabListener
 {
 	private static final String TAG = "DroidSharkActivity";
-	private int currPane = SnifferConstants.SNIFFERPANE, packetsReceived, totalPackets;
+	private int currPane = SnifferConstants.SNIFFERPANE, packetsReceived,
+			totalPackets;
 	private SnifferFragment snifferFragment;
 	private PacketViewFragment packetViewFragment;
 	private ActionBar.Tab mSnifTab, mPVTab;
@@ -122,7 +124,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 			Log.e(getClass().getSimpleName(),
 					"IOException, message=" + e.getMessage());
 		}
-		
+
 		// Get database of filters
 		filterDB = new FilterDatabase(this);
 
@@ -132,34 +134,36 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		AndroidAuthSession session = buildSession();
 		dropboxAPI = new DropboxAPI<AndroidAuthSession>(session);
 		dropboxLoggedIn = dropboxAPI.getSession().isLinked();
-		
-		snifferFragment = (SnifferFragment) getSupportFragmentManager().findFragmentById(R.id.snifferFragment);
-		packetViewFragment = (PacketViewFragment) getSupportFragmentManager().findFragmentById(R.id.packetViewFragment);
-		
-		//Status related text views
+
+		snifferFragment = (SnifferFragment) getSupportFragmentManager()
+				.findFragmentById(R.id.snifferFragment);
+		packetViewFragment = (PacketViewFragment) getSupportFragmentManager()
+				.findFragmentById(R.id.packetViewFragment);
+
+		// Status related text views
 		statusTextView = (TextView) findViewById(R.id.statusTextView);
 		filePacketsTextView = (TextView) findViewById(R.id.filePacketsTextView);
 		appPacketsTextView = (TextView) findViewById(R.id.appPacketsTextView);
-		
-		if(savedInstanceState != null)
+
+		if (savedInstanceState != null)
 		{
 			currPane = savedInstanceState.getInt("currPane");
 			packetsReceived = savedInstanceState.getInt("packetsReceived");
 			totalPackets = savedInstanceState.getInt("totalPackets");
 		}
-			
+
 		// Start service onCreate(), so it is not destroyed when activity
 		// unbinds.
-		if(SnifferConstants.DEBUG)
+		if (SnifferConstants.DEBUG)
 			Log.d(TAG, "Starting service");
 		startService(new Intent(this, TCPDumpService.class));
-		
+
 		mActionBar = getSupportActionBar();
-		mActionBar.setDisplayHomeAsUpEnabled(false);			
+		mActionBar.setDisplayHomeAsUpEnabled(false);
 
 		// Set display to last pane shown
-		if(!getResources().getBoolean(R.bool.has_two_panes))
-		{	
+		if (!getResources().getBoolean(R.bool.has_two_panes))
+		{
 			// Create tabs
 			mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
 			mSnifTab = mActionBar.newTab().setText(R.string.sniffer)
@@ -179,8 +183,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 				mActionBar.addTab(mSnifTab, false);
 				mActionBar.addTab(mPVTab, true);
 			}
-		}
-		else
+		} else
 			mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
 	}
 
@@ -188,9 +191,9 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 	protected void onStart()
 	{
 		super.onStart();
-		
-		//Bind to the service
-		if(SnifferConstants.DEBUG)
+
+		// Bind to the service
+		if (SnifferConstants.DEBUG)
 			Log.d(TAG, "Binding TCPDumpService");
 		bindService(new Intent(this, TCPDumpService.class), sConn, 0);
 	}
@@ -232,12 +235,12 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 			}
 		}
 	}
-	
+
 	@Override
 	protected void onStop()
 	{
 		super.onStop();
-		
+
 		// Unbind the service
 		if (isBound)
 		{
@@ -247,16 +250,16 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 			unbindService(sConn);
 		}
 	}
-	
+
 	@Override
 	public void onDestroy()
 	{
 		super.onDestroy();
-		
-		//Keep service running if tcpdump is running in background
-		if(!tcpdumpIsRunning)
+
+		// Keep service running if tcpdump is running in background
+		if (!tcpdumpIsRunning)
 			stopService(new Intent(this, TCPDumpService.class));
-		
+
 		filterDB.close();
 	}
 
@@ -265,9 +268,21 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 	{
 		MenuInflater inflater = this.getSupportMenuInflater();
 		inflater.inflate(R.menu.main_menu, menu);
+
 		// Calling super after populating the menu is necessary here to ensure
 		// that the action bar helpers have a chance to handle this event.
 		return super.onCreateOptionsMenu(menu);
+	}
+
+	
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu)
+	{
+		MenuItem item = menu.findItem(R.id.logout);
+
+        item.setVisible(dropboxLoggedIn);
+        
+        return super.onPrepareOptionsMenu(menu);
 	}
 
 	@Override
@@ -287,7 +302,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		switch (item.getItemId())
 		{
 		case R.id.exit:
-			if(tcpdumpIsRunning)
+			if (tcpdumpIsRunning)
 				stopSniffer();
 			finish();
 			return true;
@@ -318,6 +333,12 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 			else
 				dropboxAPI.getSession().startAuthentication(this);
 			return true;
+		case R.id.logout:
+			dropboxLogOut();
+			return true;
+		case R.id.help:
+			openHelpDialog();
+			return true;
 		case R.id.about:
 			openAboutDialog();
 			return true;
@@ -327,13 +348,22 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 	}
 
 	/**
+	 * Opens the help dialog
+	 */
+	private void openHelpDialog()
+	{
+		new HelpFragment().show(getSupportFragmentManager(), "help");
+	}
+
+	
+	/**
 	 * Opens the about dialog
 	 */
 	private void openAboutDialog()
 	{
 		new AboutFragment().show(getSupportFragmentManager(), "about");
 	}
-
+	
 	/**
 	 * Creates a dropbox session
 	 * 
@@ -396,6 +426,23 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		edit.putString(SnifferConstants.DROPBOX_KEY_NAME, key);
 		edit.putString(SnifferConstants.DROPBOX_SECRET_NAME, secret);
 		edit.commit();
+	}
+
+	/**
+	 * Logs out from dropbox
+	 */
+	private void dropboxLogOut()
+	{
+		// Remove credentials from the session
+		dropboxAPI.getSession().unlink();
+
+		// Clear our stored keys
+		SharedPreferences prefs = getSharedPreferences("dropbox", 0);
+		Editor edit = prefs.edit();
+		edit.clear();
+		edit.commit();
+		dropboxLoggedIn = false;
+		Toast.makeText(this, "Log Out Successful", Toast.LENGTH_SHORT).show();
 	}
 
 	/**
@@ -489,7 +536,8 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 			{
 				tProcess = proc;
 				tService.openFileStream(tProcess);
-				packetsReceived = 0; totalPackets = 0;
+				packetsReceived = 0;
+				totalPackets = 0;
 				updatePacketCount();
 			}
 		} catch (NumberFormatException e)
@@ -500,7 +548,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 		}
 
 		setStatusText(tcpdumpIsRunning);
-		
+
 		packetViewFragment.clearPackets();
 	}
 
@@ -534,7 +582,7 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 			statusTextView.setTextColor(Color.RED);
 		}
 	}
-	
+
 	/**
 	 * Updates the packet text views
 	 * 
@@ -543,9 +591,9 @@ public class DroidSharkActivity extends SherlockFragmentActivity implements
 	{
 		filePacketsTextView.setText(totalPackets + "");
 		appPacketsTextView.setText(packetsReceived + "");
-		
+
 	}
-	
+
 	/**
 	 * Closes the soft keyboard
 	 * 
